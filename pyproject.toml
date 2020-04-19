@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "ortoolpy"
+version = "0.2.31"
+description = "`ortoolpy` is a package for Operations Research."
+authors = ["SaitoTsutomu <tsutomu7@hotmail.co.jp>"]
+homepage = "https://github.com/SaitoTsutomu/ortoolpy"
+classifiers = [
+   "Development Status :: 1 - Planning",
+   "License :: OSI Approved :: Python Software Foundation License",
+   "Programming Language :: Python",
+   "Intended Audience :: Developers",
+   "Intended Audience :: Science/Research",
+   "Topic :: Scientific/Engineering",
+   "Topic :: Software Development",
+]
+license = "PSFL"
+readme = "README.rst"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+pulp = "^2.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+flake8 = "^3.7.9"
+black = "^19.10b0"
+isort = "^4.3.21"
+mypy = "^0.770"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
