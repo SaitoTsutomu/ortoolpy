@@ -278,7 +278,9 @@ def graph_from_table(
     Excelの場合：[Excelファイル名]シート名
     from_to: 'from-to'となる列を追加（ただしfrom < to）
     """
-    import re, pandas as pd, networkx as nx
+    import re
+    import pandas as pd
+    import networkx as nx
 
     if isinstance(dfnd, str):
         m = re.match(r"\[([^]]+)](\w+)", dfnd)
@@ -332,7 +334,7 @@ def maximum_stable_set(g, weight="weight"):
     出力
         最大安定集合の重みの合計と頂点番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, value
 
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in g.nodes()]
@@ -365,7 +367,7 @@ def maximum_cut(g, weight="weight"):
     出力
         カットの重みの合計と片方の頂点番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, LpMaximize, LpBinary, lpSum, value
 
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in g.nodes()]
@@ -439,7 +441,7 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
         dem = nx.get_node_attributes(g, demand)
         routes = ortools_vrp(len(dd), dd, nv, capa, dem)
         return [list(pairwise(route)) for route in routes]
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, LpBinary, lpSum, value
     from itertools import islice
 
     rv = range(nv)
@@ -467,7 +469,7 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
     return [[(i, j) for i, j in g.edges() if value(x[v][i, j]) > 0.5] for v in rv]
 
 
-def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0):
+def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     """
     運搬経路問題
     入力
@@ -477,6 +479,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0):
         capa: 運搬車容量
         demands: 需要
         depo: デポ
+        limit_time: 計算時間制限（use GUIDED_LOCAL_SEARCH）
     出力
         運搬車ごとのルート
     """
@@ -502,6 +505,12 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0):
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     )
+    if limit_time:
+        search_parameters.local_search_metaheuristic = (
+            routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
+        )
+        search_parameters.guided_local_search_lambda_coefficient = 0.1
+        search_parameters.time_limit.seconds = limit_time
     solution = routing.SolveWithParameters(search_parameters)
     if not solution:
         return None
@@ -751,9 +760,9 @@ def combinatorial_auction(n, cand, limit=-1):
         for k in ca[1]:
             dcc[k].append(v)
     for k, v in dcv.items():
-        l = dcl[k]
-        if l >= 0:
-            m += lpSum(v) <= l  # 購入者ごとの上限
+        ll = dcl[k]
+        if ll >= 0:
+            m += lpSum(v) <= ll  # 購入者ごとの上限
     for v in dcc.values():
         m += lpSum(v) <= 1  # 要素の売却先は1まで
     if m.solve() != 1:
@@ -790,8 +799,8 @@ def two_machine_flowshop(p):
         else:
             l2.append(k)
         a[2 * k] = a[2 * k + 1] = inf
-    l = l1 + l2[::-1]
-    return proctime(p, l), l
+    ll = l1 + l2[::-1]
+    return proctime(p, ll), ll
 
 
 def shift_scheduling(ndy, nst, shift, proh, need):
@@ -839,7 +848,7 @@ def knapsack(size, weight, capacity):
     出力
         価値の総和と選択した荷物番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, value
 
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in size]
@@ -1029,7 +1038,7 @@ def facility_location(p, point, cand, func=None):
     出力
         顧客ごとの施設番号リスト
     """
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, lpDot, lpSum, value
 
     if not func:
         func = lambda i, j: sqrt(
@@ -1062,7 +1071,7 @@ def facility_location_without_capacity(p, point, cand=None, func=None):
     出力
         顧客ごとの施設番号リスト
     """
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
+    from pulp import LpProblem, lpDot, lpSum, value
 
     if cand is None:
         cand = point
@@ -1181,8 +1190,9 @@ def logistics_network(
     tbfa: 工場 製品 生産費 (下限) (上限)
     出力: 解の有無, 輸送表, 生産表
     """
-    import numpy as np, pandas as pd
-    from pulp import LpProblem, lpDot, lpSum, value
+    import numpy as np
+    import pandas as pd
+    from pulp import LpProblem, lpDot, value
 
     facprd = [fac, prd]
     m = LpProblem()
@@ -1231,7 +1241,8 @@ def sudoku(s, checkOnlyOne=False):
     '. . 4 |. . . |. . . '
     '. 1 . |. 6 4 |3 . 9 ')[0]
     """
-    import re, pandas as pd
+    import re
+    import pandas as pd
     from itertools import product
     from pulp import LpProblem, lpSum, value
 
@@ -1251,7 +1262,7 @@ def sudoku(s, checkOnlyOne=False):
     for cl in [["行", "列"], ["行", "数"], ["列", "数"], ["_3x3", "数"]]:
         for _, v in a.groupby(cl):
             m += lpSum(v.Var) == 1
-    for _, r in a[a.固 == True].iterrows():
+    for _, r in a[a.固 == True].iterrows():  # noqa
         m += r.Var == 1
     m.solve()
     if m.status != 1:
@@ -1259,7 +1270,7 @@ def sudoku(s, checkOnlyOne=False):
     a["Val"] = a.Var.apply(value)
     res = a[a.Val > 0.5].数.values.reshape(9, 9).tolist()
     if checkOnlyOne:
-        fr = a[(a.Val > 0.5) & (a.固 != True)].Var
+        fr = a[(a.Val > 0.5) & (a.固 != True)].Var  # noqa
         m += lpSum(fr) <= len(fr) - 1
         return res, m.solve() != 1
     return res, None
@@ -1642,7 +1653,7 @@ class unionfind:
 
     @staticmethod
     def isconnectedlist(nw, nh, lst):
-        l = [[False] * nw for j in range(nh)]
+        ll = [[False] * nw for j in range(nh)]
         for i, j in lst:
-            l[i][j] = True
-        return unionfind.isconnected(l)
+            ll[i][j] = True
+        return unionfind.isconnected(ll)

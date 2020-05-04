@@ -14,5 +14,5 @@ from .etc import *
 # from .optimization import * # networkx等が必要なのでデフォルトではimportしない
 
 # see pyproject.toml
-__version__ = "0.2.31"
+__version__ = "0.2.32"
 __author__ = "Saito Tsutomu <tsutomu7@hotmail.co.jp>"
