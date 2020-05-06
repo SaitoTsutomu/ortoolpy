@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ortoolpy"
-version = "0.2.33"
+version = "0.2.34"
 description = "`ortoolpy` is a package for Operations Research."
 authors = ["SaitoTsutomu <tsutomu7@hotmail.co.jp>"]
 homepage = "https://github.com/SaitoTsutomu/ortoolpy"
@@ -19,6 +19,8 @@ readme = "README.rst"
 [tool.poetry.dependencies]
 python = "^3.7"
 pulp = "^2.1"
+more-itertools = "^8.2.0"
+pandas = "^1.0.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
