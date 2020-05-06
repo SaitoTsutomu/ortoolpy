@@ -2,8 +2,25 @@
 Copyright: 2015-2020 Saito Tsutomu
 License: Python Software Foundation License
 """
+from collections import defaultdict
 from math import ceil, sqrt
 from typing import Iterable
+
+from more_itertools import pairwise
+from pulp import (
+    LpBinary,
+    LpInteger,
+    LpMaximize,
+    LpMinimize,
+    LpProblem,
+    LpVariable,
+    lpDot,
+    lpSum,
+    value,
+)
+
+import numpy as np
+import pandas as pd
 
 iterable = lambda a: isinstance(a, Iterable)
 
@@ -15,24 +32,18 @@ def L(s, i=[-1]):
 
 def model_min(*n, **ad):
     """最小化のモデル"""
-    from pulp import LpProblem, LpMinimize
-
     ad["sense"] = LpMinimize
     return LpProblem(*n, **ad)
 
 
 def model_max(*n, **ad):
     """最大化のモデル"""
-    from pulp import LpProblem, LpMaximize
-
     ad["sense"] = LpMaximize
     return LpProblem(*n, **ad)
 
 
 def addvals(*n, Var="Var", Val="Val"):
     """結果の列を作成"""
-    from pulp import value
-
     for df in n:
         df[Val] = df[Var].apply(value)
     return n
@@ -40,8 +51,6 @@ def addvals(*n, Var="Var", Val="Val"):
 
 def addvar(name=None, *, var_count=[0], lowBound=0, format="v%.6d", **kwargs):
     """変数作成用ユーティリティ"""
-    from pulp import LpVariable
-
     if not name:
         var_count[0] += 1
         name = format % var_count[0]
@@ -52,9 +61,7 @@ def addvar(name=None, *, var_count=[0], lowBound=0, format="v%.6d", **kwargs):
 
 def addvars(*n, **ad):
     """配列変数作成用ユーティリティ"""
-    from pandas import DataFrame
-
-    if n and all(isinstance(df, DataFrame) for df in n):
+    if n and all(isinstance(df, pd.DataFrame) for df in n):
         s = ad.pop("Var", "Var")
         for df in n:
             df[s] = addvars(len(df), **ad)
@@ -66,15 +73,11 @@ def addvars(*n, **ad):
 
 def addbinvar(*n, **ad):
     """0-1変数作成用ユーティリティ"""
-    from pulp import LpBinary
-
     return addvar(*n, cat=LpBinary, **ad)
 
 
 def addbinvars(*n, **ad):
     """0-1配列変数作成用ユーティリティ"""
-    from pulp import LpBinary
-
     return addvars(*n, cat=LpBinary, **ad)
 
 
@@ -105,19 +108,15 @@ def addline(m, p1, p2, x, y, upper=True):
 
 def addlines_conv(m, curve, x, y, upper=True):
     """区分線形制約(凸)"""
-    from more_itertools import pairwise
-
     for p1, p2 in pairwise(curve):
         addline(m, p1, p2, x, y, upper)
 
 
 def addlines(m, curve, x, y):
     """区分線形制約(非凸)"""
-    from pulp import LpBinary, lpSum, lpDot
-
     n = len(curve)
     w = addvars(n - 1)
-    z = addvars(n - 2, cat=LpBinary)
+    z = addbinvars(n - 2)
     a = [p[0] for p in curve]
     b = [p[1] for p in curve]
     m += x == a[0] + lpSum(w)
@@ -131,8 +130,6 @@ def addlines(m, curve, x, y):
 
 def value_or_zero(x):
     """value or 0"""
-    from pulp import value
-
     v = value(x) if x else None
     return v if v is not None else 0
 
@@ -148,8 +145,7 @@ def random_model(nv, nc, sense=1, seed=1, rtfr=0, rtco=0.1, rteq=0, feasible=Fal
     rteq:制約条件等号割合
     feasible:実行可能かどうか
     """
-    import numpy as np
-    from pulp import LpProblem, lpDot, LpConstraint, LpStatusOptimal
+    from pulp import LpConstraint, LpStatusOptimal
 
     rtco = max(1e-3, rtco)
     if seed:
@@ -178,8 +174,6 @@ def random_model(nv, nc, sense=1, seed=1, rtfr=0, rtco=0.1, rteq=0, feasible=Fal
 
 def dual_model(m, ignoreUpBound=False):
     """双対問題作成"""
-    from pulp import LpProblem, lpDot, lpSum, LpMaximize, LpMinimize
-
     coe = 1 if m.sense == LpMinimize else -1
     nwmdl = LpProblem(sense=LpMaximize if m.sense == LpMinimize else LpMinimize)
     ccs = [[], [], []]
@@ -211,8 +205,6 @@ def dual_model(m, ignoreUpBound=False):
 
 def dual_model_nonzero(m, ignoreUpBound=False):
     """双対問題作成(ただし、全て非負変数)"""
-    from pulp import LpProblem, lpDot, lpSum, LpMaximize, LpMinimize
-
     assert all(v.lowBound == 0 for v in m.variables()), "Must be lowBound==0"
     if not ignoreUpBound:
         assert all(v.upBound is None for v in m.variables())
@@ -242,8 +234,6 @@ def dual_model_nonzero(m, ignoreUpBound=False):
 
 def satisfy(m, eps=1e-6):
     """モデルが実行可能かどうか"""
-    from pulp import value, LpInteger
-
     for x in m.variables():
         v = value(x)
         if x.lowBound is not None and v < x.lowBound - eps:
@@ -279,7 +269,6 @@ def graph_from_table(
     from_to: 'from-to'となる列を追加（ただしfrom < to）
     """
     import re
-    import pandas as pd
     import networkx as nx
 
     if isinstance(dfnd, str):
@@ -334,8 +323,6 @@ def maximum_stable_set(g, weight="weight"):
     出力
         最大安定集合の重みの合計と頂点番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, value
-
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in g.nodes()]
     for i, j in g.edges():
@@ -367,8 +354,6 @@ def maximum_cut(g, weight="weight"):
     出力
         カットの重みの合計と片方の頂点番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpSum, value
-
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in g.nodes()]
     u = []
@@ -435,13 +420,11 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
     """
     if method == "ortools":
         import networkx as nx
-        from more_itertools import pairwise
 
         dd = nx.to_numpy_matrix(g, weight=cost, nonedge=999999).astype(int)
         dem = nx.get_node_attributes(g, demand)
         routes = ortools_vrp(len(dd), dd, nv, capa, dem)
         return [list(pairwise(route)) for route in routes]
-    from pulp import LpProblem, LpBinary, lpSum, value
     from itertools import islice
 
     rv = range(nv)
@@ -483,8 +466,6 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     出力
         運搬車ごとのルート
     """
-    import numpy as np
-
     assert isinstance(dist[0, 1], (int, np.int32, np.int64)), "Distance must be int."
     try:
         from ortools.constraint_solver import routing_enums_pb2
@@ -532,8 +513,6 @@ def tsp(nodes, dist=None, method=None):
 
         dist = distance.cdist(nodes, nodes)
     if method == "ortools":  # Approximate solution
-        from more_itertools import pairwise
-
         route = ortools_vrp(len(dist), dist)[0]
         return sum(dist[i, j] for i, j in pairwise(route)), route[:-1]
     return tsp1(nodes, dist)
@@ -548,9 +527,7 @@ def tsp1(nodes, dist):
     出力
         距離と点番号リスト
     """
-    import pandas as pd
     from more_itertools import iterate, take
-    from pulp import LpProblem, lpDot, lpSum, value
 
     n = len(nodes)
     df = pd.DataFrame(
@@ -585,9 +562,6 @@ def tsp2(pos):
     出力
         距離と点番号リスト
     """
-    import numpy as np
-    from pulp import LpProblem, LpVariable, LpBinary, lpDot, lpSum, value
-
     pos = np.array(pos)
     N = len(pos)
     m = LpProblem()
@@ -700,8 +674,6 @@ def set_covering(n, cand, is_partition=False):
         選択された候補リストの番号リスト
     """
     ad = AutoCountDict()
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
-
     m = LpProblem()
     vv = [addvar(cat=LpBinary) for _ in cand]
     m += lpDot([w for w, _ in cand], vv)  # obj func
@@ -743,9 +715,6 @@ def combinatorial_auction(n, cand, limit=-1):
     出力
         選択された候補リストの番号リスト
     """
-    from pulp import LpProblem, LpMaximize, lpDot, lpSum, value
-    from collections import defaultdict
-
     dcv = defaultdict(list)  # buyer別候補変数
     dcc = defaultdict(list)  # item別候補
     isdgt = isinstance(limit, int)
@@ -779,7 +748,6 @@ def two_machine_flowshop(p):
     出力
         処理時間と処理順のリスト
     """
-    from numpy import array, inf
 
     def proctime(p, l):
         n = len(p)
@@ -790,7 +758,7 @@ def two_machine_flowshop(p):
             t[i][1] = max(t[i - 1][1], t[i][0]) + t2
         return t[n][1]
 
-    a, l1, l2 = array(p, dtype=float).flatten(), [], []
+    a, l1, l2 = np.array(p, dtype=float).flatten(), [], []
     for _ in range(a.size // 2):
         j = a.argmin()
         k = j // 2
@@ -798,7 +766,7 @@ def two_machine_flowshop(p):
             l1.append(k)
         else:
             l2.append(k)
-        a[2 * k] = a[2 * k + 1] = inf
+        a[2 * k] = a[2 * k + 1] = np.inf
     ll = l1 + l2[::-1]
     return proctime(p, ll), ll
 
@@ -815,8 +783,6 @@ def shift_scheduling(ndy, nst, shift, proh, need):
     出力
         日ごとスタッフごとのシフトの番号のテーブル
     """
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
-
     nsh = len(shift)
     rdy, rst, rsh = range(ndy), range(nst), range(nsh)
     dsh = {sh: k for k, sh in enumerate(shift)}
@@ -848,8 +814,6 @@ def knapsack(size, weight, capacity):
     出力
         価値の総和と選択した荷物番号リスト
     """
-    from pulp import LpProblem, LpMaximize, LpBinary, lpDot, value
-
     m = LpProblem(sense=LpMaximize)
     v = [addvar(cat=LpBinary) for _ in size]
     m += lpDot(weight, v)
@@ -869,16 +833,7 @@ def binpacking(c, w):
     出力
         ビンごとの荷物の大きさリスト
     """
-    from pulp import (
-        LpProblem,
-        LpAffineExpression,
-        LpMinimize,
-        LpMaximize,
-        LpBinary,
-        lpDot,
-        lpSum,
-        value,
-    )
+    from pulp import LpAffineExpression
 
     n = len(w)
     rn = range(n)
@@ -1038,8 +993,6 @@ def facility_location(p, point, cand, func=None):
     出力
         顧客ごとの施設番号リスト
     """
-    from pulp import LpProblem, lpDot, lpSum, value
-
     if not func:
         func = lambda i, j: sqrt(
             (point[i][0] - cand[j][0]) ** 2 + (point[i][1] - cand[j][1]) ** 2
@@ -1071,8 +1024,6 @@ def facility_location_without_capacity(p, point, cand=None, func=None):
     出力
         顧客ごとの施設番号リスト
     """
-    from pulp import LpProblem, lpDot, lpSum, value
-
     if cand is None:
         cand = point
     if not func:
@@ -1127,8 +1078,6 @@ def gap(cst, req, cap):
     出力
         ジョブごとのエージェント番号リスト
     """
-    from pulp import LpProblem, LpBinary, lpDot, lpSum, value
-
     na, nj = len(cst), len(cst[0])
     m = LpProblem()
     v = [[addvar(cat=LpBinary) for _ in range(nj)] for _ in range(na)]
@@ -1190,10 +1139,6 @@ def logistics_network(
     tbfa: 工場 製品 生産費 (下限) (上限)
     出力: 解の有無, 輸送表, 生産表
     """
-    import numpy as np
-    import pandas as pd
-    from pulp import LpProblem, lpDot, value
-
     facprd = [fac, prd]
     m = LpProblem()
     tbpr = tbfa[facprd].sort_values(facprd).drop_duplicates()
@@ -1242,9 +1187,7 @@ def sudoku(s, checkOnlyOne=False):
     '. 1 . |. 6 4 |3 . 9 ')[0]
     """
     import re
-    import pandas as pd
     from itertools import product
-    from pulp import LpProblem, lpSum, value
 
     data = re.sub(r"[^\d.]", "", s)
     assert len(data) == 81
@@ -1556,8 +1499,6 @@ class MultiKeyDict:
         return dict(self.getitem_iter(keys if isinstance(keys, tuple) else (keys,)))
 
     def get_list(self, keys, onlylastkey=False, extend=False):
-        from collections import defaultdict
-
         d = defaultdict(list)
         for k, v in self.getitem_iter(keys if isinstance(keys, tuple) else (keys,)):
             e = d[k[-1] if onlylastkey else k]
@@ -1623,8 +1564,6 @@ class unionfind:
 
     def groups(self):
         """全グループ"""
-        from collections import defaultdict
-
         d = defaultdict(list)
         for key in self._dict:
             d[self.find(key)].append(key)

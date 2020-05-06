@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ortoolpy"
-version = "0.2.32"
+version = "0.2.33"
 description = "`ortoolpy` is a package for Operations Research."
 authors = ["SaitoTsutomu <tsutomu7@hotmail.co.jp>"]
 homepage = "https://github.com/SaitoTsutomu/ortoolpy"
