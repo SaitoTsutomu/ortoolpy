@@ -50,9 +50,10 @@ class LpProblemEx(LpProblem):
             self += lpSum(lpDot(df[obj], df.Var) for df in dfs if 'Var' in df
                           for obj in objs if obj in df.columns)
         super().solve(*n, **ad)
-        for df in dfs:
-            if 'Var' in df:
-                addvals(df)
+        if self.status == 1:
+            for df in dfs:
+                if 'Var' in df:
+                    addvals(df)
         return self.status
 
 
