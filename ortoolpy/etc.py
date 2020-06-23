@@ -6,21 +6,13 @@ from collections import defaultdict
 from math import ceil, sqrt
 from typing import Iterable
 
-from more_itertools import pairwise
-from pulp import (
-    LpBinary,
-    LpInteger,
-    LpMaximize,
-    LpMinimize,
-    LpProblem,
-    LpVariable,
-    lpDot,
-    lpSum,
-    value,
-)
-
 import numpy as np
 import pandas as pd
+from more_itertools import always_iterable, pairwise
+
+# fmt: off
+from pulp import (LpBinary, LpInteger, LpMaximize, LpMinimize,  # fmt: on
+                  LpProblem, LpVariable, lpDot, lpSum, value)
 
 iterable = lambda a: isinstance(a, Iterable)
 
@@ -30,16 +22,55 @@ def L(s, i=[-1]):
     return "%s_%s" % (s, i[0])
 
 
-def model_min(*n, **ad):
+def always_dataframe_list(df):
+    if df is None:
+        return []
+    if isinstance(df, pd.DataFrame):
+        return [df]
+    return df
+
+
+class LpProblemEx(LpProblem):
+    def __init__(self, *n, df=None, dfb=None, dfi=None, **ad):
+        super().__init__(*n, **ad)
+        self._df = always_dataframe_list(df)
+        self._dfb = always_dataframe_list(dfb)
+        self._dfi = always_dataframe_list(dfi)
+        if self._df:
+            addvars(*self._df)
+        if self._dfb:
+            addbinvars(*self._dfb)
+        if self._dfi:
+            addintvars(*self._dfi)
+
+    def solve(self, *n, objs=None, **ad):
+        dfs = self._df + self._dfb + self._dfi
+        if objs:
+            objs = list(always_iterable(objs))
+            self += lpSum(lpDot(df[obj], df.Var) for df in dfs if 'Var' in df
+                          for obj in objs if obj in df.columns)
+        super().solve(*n, **ad)
+        for df in dfs:
+            if 'Var' in df:
+                addvals(df)
+        return self.status
+
+
+def model(*n, ismin=True, df=None, dfb=None, dfi=None, **ad):
     """最小化のモデル"""
-    ad["sense"] = LpMinimize
-    return LpProblem(*n, **ad)
+    ad["sense"] = LpMinimize if ismin else LpMaximize
+    m = LpProblemEx(*n, **ad, df=df, dfb=dfb, dfi=dfi)
+    return m
 
 
-def model_max(*n, **ad):
+def model_min(*n, df=None, dfb=None, dfi=None, **ad):
+    """最小化のモデル"""
+    return model(*n, **ad, ismin=True, df=df, dfb=dfb, dfi=dfi)
+
+
+def model_max(*n, df=None, dfb=None, dfi=None, **ad):
     """最大化のモデル"""
-    ad["sense"] = LpMaximize
-    return LpProblem(*n, **ad)
+    return model(*n, **ad, ismin=False, df=df, dfb=dfb, dfi=dfi)
 
 
 def addvals(*n, Var="Var", Val="Val"):
@@ -79,6 +110,16 @@ def addbinvar(*n, **ad):
 def addbinvars(*n, **ad):
     """0-1配列変数作成用ユーティリティ"""
     return addvars(*n, cat=LpBinary, **ad)
+
+
+def addintvar(*n, **ad):
+    """整数変数作成用ユーティリティ"""
+    return addvar(*n, cat=LpInteger, **ad)
+
+
+def addintvars(*n, **ad):
+    """整数配列変数作成用ユーティリティ"""
+    return addvars(*n, cat=LpInteger, **ad)
 
 
 def _addvarsRec(va, *n, **ad):
@@ -749,11 +790,11 @@ def two_machine_flowshop(p):
         処理時間と処理順のリスト
     """
 
-    def proctime(p, l):
+    def proctime(p, ll):
         n = len(p)
         t = [[0, 0] for _ in range(n + 1)]
         for i in range(1, n + 1):
-            t1, t2 = p[l[i - 1]]
+            t1, t2 = p[ll[i - 1]]
             t[i][0] = t[i - 1][0] + t1
             t[i][1] = max(t[i - 1][1], t[i][0]) + t2
         return t[n][1]
@@ -1570,24 +1611,24 @@ class unionfind:
         return list(d.values())
 
     @staticmethod
-    def isconnected(l, u=None):
-        nw, nh = len(l), len(l[0])
+    def isconnected(ll, u=None):
+        nw, nh = len(ll), len(ll[0])
         rw, rh = range(nw), range(nh)
         if not u:
             u = unionfind()
         f = -1
         for i in rw:
             for j in rh:
-                if not l[i][j]:
+                if not ll[i][j]:
                     continue
                 if f < 0:
                     f = i + j * nw
-                if j > 0 and l[i][j] == l[i][j - 1]:
+                if j > 0 and ll[i][j] == ll[i][j - 1]:
                     u.unite(i + j * nw, i + j * nw - nw)
-                if i > 0 and l[i][j] == l[i - 1][j]:
+                if i > 0 and ll[i][j] == ll[i - 1][j]:
                     u.unite(i + j * nw, i + j * nw - 1)
         return f >= 0 and all(
-            [u.issame(f, i + j * nw) for i in rw for j in rh if l[i][j]]
+            [u.issame(f, i + j * nw) for i in rw for j in rh if ll[i][j]]
         )
 
     @staticmethod
