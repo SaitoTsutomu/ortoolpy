@@ -14,5 +14,5 @@ from .etc import *  # noqa
 # from .optimization import * # networkx等が必要なのでデフォルトではimportしない
 
 # see pyproject.toml
-__version__ = "0.2.34"
+__version__ = "0.2.36"
 __author__ = "Saito Tsutomu <tsutomu7@hotmail.co.jp>"

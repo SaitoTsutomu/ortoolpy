@@ -11,9 +11,10 @@ import pandas as pd
 from more_itertools import always_iterable, pairwise
 
 # fmt: off
-from pulp import (LpBinary, LpInteger, LpMaximize, LpMinimize,  # fmt: on
-                  LpProblem, LpVariable, lpDot, lpSum, value)
+from pulp import (LpBinary, LpInteger, LpMaximize, LpMinimize, LpProblem,
+                  LpVariable, lpDot, lpSum, value)
 
+# fmt: on
 iterable = lambda a: isinstance(a, Iterable)
 
 
@@ -28,6 +29,14 @@ def always_dataframe_list(df):
     if isinstance(df, pd.DataFrame):
         return [df]
     return df
+
+
+def _obj_expr(df, objs):
+    return (
+        lpDot(-df[obj[1:]] if obj[0] == "-" else df[obj], df.Var)
+        for obj in objs
+        if obj.lstrip("-") in df
+    )
 
 
 class LpProblemEx(LpProblem):
@@ -47,13 +56,16 @@ class LpProblemEx(LpProblem):
         dfs = self._df + self._dfb + self._dfi
         if objs:
             objs = list(always_iterable(objs))
-            self += lpSum(lpDot(df[obj], df.Var) for df in dfs if 'Var' in df
-                          for obj in objs if obj in df.columns)
+            self += lpSum(_obj_expr(df, objs) for df in dfs if "Var" in df)
         super().solve(*n, **ad)
         if self.status == 1:
             for df in dfs:
-                if 'Var' in df:
+                if "Var" in df:
                     addvals(df)
+        else:
+            for df in dfs:
+                if "Val" in df:
+                    df.drop("Val", 1, inplace=True)
         return self.status
 
 
