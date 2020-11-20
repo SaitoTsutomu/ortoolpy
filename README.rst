@@ -11,7 +11,7 @@ It is user's responsibility for the use of `ortoolpy`.
 
 Requirements
 ------------
-* Python 3, numpy, pandas, matplotlib, networkx, pulp, more-itertools, ortools
+* Python 3, pandas, pulp, more-itertools
 
 Features
 --------

@@ -4,18 +4,31 @@ License: Python Software Foundation License
 """
 from collections import defaultdict
 from math import ceil, sqrt
-from typing import Iterable
+from typing import Iterable, Tuple
 
 import numpy as np
 import pandas as pd
+
+if "Don't show message from pulp.":
+    import pulp
+
+    if isinstance(pulp.LpSolverDefault, pulp.PULP_CBC_CMD):
+        pulp.LpSolverDefault.msg = False
+
 from more_itertools import always_iterable, pairwise
+from pulp import (
+    LpBinary,
+    LpInteger,
+    LpMaximize,
+    LpMinimize,
+    LpProblem,
+    LpVariable,
+    lpDot,
+    lpSum,
+    value,
+)
 
-# fmt: off
-from pulp import (LpBinary, LpInteger, LpMaximize, LpMinimize, LpProblem,
-                  LpVariable, lpDot, lpSum, value)
-
-# fmt: on
-iterable = lambda a: isinstance(a, Iterable)
+iterable = lambda a: isinstance(a, Iterable)  # noqa
 
 
 def L(s, i=[-1]):
@@ -323,6 +336,7 @@ def graph_from_table(
     from_to: 'from-to'となる列を追加（ただしfrom < to）
     """
     import re
+
     import networkx as nx
 
     if isinstance(dfnd, str):
@@ -522,8 +536,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     """
     assert isinstance(dist[0, 1], (int, np.int32, np.int64)), "Distance must be int."
     try:
-        from ortools.constraint_solver import routing_enums_pb2
-        from ortools.constraint_solver import pywrapcp
+        from ortools.constraint_solver import pywrapcp, routing_enums_pb2
     except ModuleNotFoundError:
         print('Please "pip install ortools"')
         raise
@@ -698,8 +711,9 @@ def chinese_postman(g, weight="weight"):
     出力
         距離と頂点リスト
     """
-    import networkx as nx
     from itertools import combinations
+
+    import networkx as nx
 
     assert not g.is_directed()
     g = nx.MultiGraph(g)
@@ -971,7 +985,7 @@ class TwoDimPackingClass:
             )
 
     def solve(self, iters=100, seed_=1):
-        from random import shuffle, seed
+        from random import seed, shuffle
 
         bst, self.pos = 0, []
         seed(seed_)
@@ -1495,7 +1509,7 @@ class MultiKeyDict:
     {('key1', 'key2', 'k1'): 1, ('key1', 'key2', 'k2'): 2}
     """
 
-    ekey = tuple()  # 空キー
+    ekey: Tuple = tuple()  # 空キー
 
     def __init__(
         self, dc={}, conv=None, iskey=None, dtype=dict, extend=False, cache=2048
