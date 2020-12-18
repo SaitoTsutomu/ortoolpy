@@ -2,7 +2,7 @@
 authors = ["SaitoTsutomu <tsutomu7@hotmail.co.jp>"]
 classifiers = [
   "Development Status :: 1 - Planning",
-  "License :: OSI Approved :: Python Software Foundation License",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python",
   "Intended Audience :: Developers",
   "Intended Audience :: Science/Research",
@@ -11,10 +11,10 @@ classifiers = [
 ]
 description = "`ortoolpy` is a package for Operations Research."
 homepage = "https://github.com/SaitoTsutomu/ortoolpy"
-license = "PSFL"
+license = "MIT"
 name = "ortoolpy"
 readme = "README.rst"
-version = "0.2.37"
+version = "0.2.38"
 
 [tool.poetry.dependencies]
 more-itertools = "^8.6.0"
