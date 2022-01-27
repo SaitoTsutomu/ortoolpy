@@ -9,6 +9,14 @@ It is user's responsibility for the use of `ortoolpy`.
    capacity = 100
    knapsack(size, weight, capacity)
 
+Show Table
+----------
+
+::
+
+   import ortoolpy.optimization
+   %typical_optimization
+
 Requirements
 ------------
 * Python 3, pandas, pulp, more-itertools

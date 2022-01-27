@@ -1,5 +1,5 @@
 """
-Copyright: 2015-2020 Saito Tsutomu
+Copyright: 2015-2022 Saito Tsutomu
 License: Python Software Foundation License
 """
 from collections import defaultdict
@@ -8,15 +8,9 @@ from typing import Iterable, Tuple
 
 import numpy as np
 import pandas as pd
-
-if "Don't show message from pulp.":
-    import pulp
-
-    if isinstance(pulp.LpSolverDefault, pulp.PULP_CBC_CMD):
-        pulp.LpSolverDefault.msg = False
-
 from more_itertools import always_iterable, pairwise
 from pulp import (
+    PULP_CBC_CMD,
     LpBinary,
     LpInteger,
     LpMaximize,
@@ -219,6 +213,7 @@ def random_model(nv, nc, sense=1, seed=1, rtfr=0, rtco=0.1, rteq=0, feasible=Fal
         np.random.seed(seed)
     var_count = [0]
     x = np.array(addvars(nv, var_count=var_count))
+    solver = PULP_CBC_CMD(msg=False)
     while True:
         m = LpProblem(sense=sense)
         m += lpDot(np.random.rand(nv) * 2 - 1, x)
@@ -235,7 +230,7 @@ def random_model(nv, nc, sense=1, seed=1, rtfr=0, rtco=0.1, rteq=0, feasible=Fal
             se = int(np.random.rand() >= rteq) * np.random.choice([-1, 1])
             m += LpConstraint(lpDot(a, x), se, rhs=np.random.rand())
             rem -= 1
-        if not feasible or m.solve() == LpStatusOptimal:
+        if not feasible or m.solve(solver) == LpStatusOptimal:
             return m
 
 
@@ -257,8 +252,7 @@ def dual_model(m, ignoreUpBound=False):
         for i, cc in enumerate(ccs)
     ]
     nwmdl += coe * lpSum(
-        k * lpDot([c.constant for c in cc], vv)
-        for k, cc, vv in zip([1, -1, -1], ccs, vvs)
+        k * lpDot([c.constant for c in cc], vv) for k, cc, vv in zip([1, -1, -1], ccs, vvs)
     )
     for w in m.variables():
         nwmdl += lpSum(
@@ -286,8 +280,7 @@ def dual_model_nonzero(m, ignoreUpBound=False):
         for i, cc in enumerate(ccs)
     ]
     nwmdl += coe * lpSum(
-        k * lpDot([c.constant for c in cc], vv)
-        for k, cc, vv in zip([1, -1, -1], ccs, vvs)
+        k * lpDot([c.constant for c in cc], vv) for k, cc, vv in zip([1, -1, -1], ccs, vvs)
     )
     for w in m.variables():
         nwmdl += lpSum(
@@ -396,7 +389,8 @@ def maximum_stable_set(g, weight="weight"):
     for i, j in g.edges():
         m += v[i] + v[j] <= 1
     m += lpDot([g.nodes[i].get(weight, 1) for i in g.nodes()], v)
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return value(m.objective), [i for i, x in enumerate(v) if value(x) > 0.5]
 
@@ -434,7 +428,8 @@ def maximum_cut(g, weight="weight"):
                 m += t <= v[i] + v[j]
                 m += t <= 2 - v[i] - v[j]
     m += lpSum(u)
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return value(m.objective), [i for i, x in enumerate(v) if value(x) > 0.5]
 
@@ -515,7 +510,8 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
                 m += wv[j] >= wv[i] + g.nodes[j][demand] - capa * (1 - xv[i, j])
     for h in islice(g.nodes(), 1, None):
         m += lpSum(x[v][i, j] for v in rv for i, j in g.edges() if i == h) == 1
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [[(i, j) for i, j in g.edges() if value(x[v][i, j]) > 0.5] for v in rv]
 
@@ -542,9 +538,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
         raise
     manager = pywrapcp.RoutingIndexManager(nn, nv, depo)
     routing = pywrapcp.RoutingModel(manager)
-    routing.SetArcCostEvaluatorOfAllVehicles(
-        get_callback_index2(manager, routing, dist)
-    )
+    routing.SetArcCostEvaluatorOfAllVehicles(get_callback_index2(manager, routing, dist))
     if demands is not None:
         routing.AddDimension(
             get_callback_index1(manager, routing, demands), 0, capa, True, "Capacity"
@@ -615,7 +609,8 @@ def tsp1(nodes, dist):
         m += 1 + (1 - v0j) + (n - 3) * vj0 <= u[j]  # 持ち上げ下界制約
     for i, _, _, vi0, v0i in df.query("NodeJ==0").itertuples(False):
         m += u[i] <= (n - 1) - (1 - vi0) - (n - 3) * v0i  # 持ち上げ上界制約
-    m.solve()
+    solver = PULP_CBC_CMD(msg=False)
+    m.solve(solver)
     df["ValIJ"] = df.VarIJ.apply(value)
     dc = df[df.ValIJ > 0.5].set_index("NodeI").NodeJ.to_dict()
     return value(m.objective), list(take(n, iterate(lambda k: dc[k], 0)))
@@ -647,8 +642,9 @@ def tsp2(pos):
             for k in range(j + 1, N):
                 m += v[i, j] + v[j, k] + v[k, i] <= 2
     st = set()
+    solver = PULP_CBC_CMD(msg=False)
     while True:
-        m.solve()
+        m.solve(solver)
         u = unionfind(N)
         for i in range(N):
             for j in range(i + 1, N):
@@ -693,8 +689,7 @@ def tsp3(point):
     for d in permutations(range(1, n)):
         e = [point[i] for i in [0] + list(d) + [0]]
         s = sum(
-            sqrt((e[i][0] - e[i + 1][0]) ** 2 + (e[i][1] - e[i + 1][1]) ** 2)
-            for i in range(n)
+            sqrt((e[i][0] - e[i + 1][0]) ** 2 + (e[i][1] - e[i + 1][1]) ** 2) for i in range(n)
         )
         if s < mn:
             mn = s
@@ -755,7 +750,8 @@ def set_covering(n, cand, is_partition=False):
                 m += lpSum(e) == 1
             else:
                 m += lpSum(e) >= 1
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [i for i, v in enumerate(vv) if value(v) > 0.5]
 
@@ -802,7 +798,8 @@ def combinatorial_auction(n, cand, limit=-1):
             m += lpSum(v) <= ll  # 購入者ごとの上限
     for v in dcc.values():
         m += lpSum(v) <= 1  # 要素の売却先は1まで
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [i for i, v in enumerate(x) if value(v) > 0.5]
 
@@ -866,7 +863,8 @@ def shift_scheduling(ndy, nst, shift, proh, need):
         for j in rst:
             for i in range(ndy - n + 1):
                 m += lpSum(v[i + h][j][pr[h]] for h in range(n)) <= n - 1
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [[int(value(lpDot(rsh, v[i][j]))) for j in rst] for i in rdy]
 
@@ -886,7 +884,8 @@ def knapsack(size, weight, capacity):
     v = [addvar(cat=LpBinary) for _ in size]
     m += lpDot(weight, v)
     m += lpDot(size, v) <= capacity
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return value(m.objective), [i for i in range(len(size)) if value(v[i]) > 0.5]
 
@@ -915,10 +914,11 @@ def binpacking(c, w):
     mdl.setObjective(lpSum(mdlva))
     for i in rn:
         mdl.addConstraint(mdlva[i] <= 1)
+    solver = PULP_CBC_CMD(msg=False)
     while True:
-        mdl.solve()
+        mdl.solve(solver)
         mkp.setObjective(lpDot([value(v) for v in mdlva], mkpva))
-        mkp.solve()
+        mkp.solve(solver)
         if mkp.status != 1 or value(mkp.objective) < 1 + 1e-6:
             break
         mdl.addConstraint(lpDot([value(v) for v in mkpva], mdlva) <= 1)
@@ -936,7 +936,7 @@ def binpacking(c, w):
             dict[v].addterm(nwmva[i], 1)
     for q in dict.values():
         nwm.addConstraint(q)
-    nwm.solve()
+    nwm.solve(solver)
     if nwm.status != 1:
         return None
     w0, result = list(w), [[] for _ in range(len(const))]
@@ -1000,8 +1000,8 @@ class TwoDimPackingClass:
                     if res and res[0] < mnr[0]:
                         mni, mnr = i, res
                 if mni >= 0:
-                    tmp.append((k, w, h) + plates[i][2:])
-                    plates[i : i + 1] = [p for p in mnr[1:3] if p[0] * p[1] > 0]
+                    tmp.append((k, w, h) + plates[mni][2:])
+                    plates[mni : mni + 1] = [p for p in mnr[1:3] if p[0] * p[1] > 0]
             sm = sum(r[1] * r[2] for r in tmp)
             if sm > bst:
                 bst, self.result = sm, tmp
@@ -1062,9 +1062,7 @@ def facility_location(p, point, cand, func=None):
         顧客ごとの施設番号リスト
     """
     if not func:
-        func = lambda i, j: sqrt(
-            (point[i][0] - cand[j][0]) ** 2 + (point[i][1] - cand[j][1]) ** 2
-        )
+        func = lambda i, j: sqrt((point[i][0] - cand[j][0]) ** 2 + (point[i][1] - cand[j][1]) ** 2)
     rp, rc = range(len(point)), range(len(cand))
     m = LpProblem()
     x = addbinvars(len(point), len(cand))
@@ -1075,7 +1073,8 @@ def facility_location(p, point, cand, func=None):
         m += lpSum(x[i]) == 1
     for j in rc:
         m += lpSum(point[i][2] * x[i][j] for i in rp) <= cand[j][2] * y[j]
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [int(value(lpDot(rc, x[i]))) for i in rp]
 
@@ -1095,9 +1094,7 @@ def facility_location_without_capacity(p, point, cand=None, func=None):
     if cand is None:
         cand = point
     if not func:
-        func = lambda i, j: sqrt(
-            (point[i][0] - cand[j][0]) ** 2 + (point[i][1] - cand[j][1]) ** 2
-        )
+        func = lambda i, j: sqrt((point[i][0] - cand[j][0]) ** 2 + (point[i][1] - cand[j][1]) ** 2)
     rp, rc = range(len(point)), range(len(cand))
     m = LpProblem()
     x = addbinvars(len(point), len(cand))
@@ -1108,7 +1105,8 @@ def facility_location_without_capacity(p, point, cand=None, func=None):
         m += lpSum(x[i]) == 1
         for j in rc:
             m += x[i][j] <= y[j]
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
     return [int(value(lpDot(rc, x[i]))) for i in rp]
 
@@ -1154,11 +1152,10 @@ def gap(cst, req, cap):
         m += lpDot(req[i], v[i]) <= cap[i]
     for j in range(nj):
         m += lpSum(v[i][j] for i in range(na)) == 1
-    if m.solve() != 1:
+    solver = PULP_CBC_CMD(msg=False)
+    if m.solve(solver) != 1:
         return None
-    return [
-        int(value(lpDot(range(na), [v[i][j] for i in range(na)]))) for j in range(nj)
-    ]
+    return [int(value(lpDot(range(na), [v[i][j] for i in range(na)]))) for j in range(nj)]
 
 
 def stable_matching(prefm, preff):
@@ -1213,9 +1210,7 @@ def logistics_network(
     tbdi2 = pd.merge(tbdi, tbpr, on=fac)
     tbdi2["VarX"] = addvars(tbdi2.shape[0])
     tbfa["VarY"] = addvars(tbfa.shape[0])
-    tbsm = pd.concat(
-        [tbdi2.groupby(facprd).VarX.sum(), tbfa.groupby(facprd).VarY.sum()], 1
-    )
+    tbsm = pd.concat([tbdi2.groupby(facprd).VarX.sum(), tbfa.groupby(facprd).VarY.sum()], 1)
     tbde2 = pd.merge(tbde, tbdi2.groupby([dep, prd]).VarX.sum().reset_index())
     m += lpDot(tbdi2[tcs], tbdi2.VarX) + lpDot(tbfa[pcs], tbfa.VarY)
     tbsm.apply(lambda r: m.addConstraint(r.VarX <= r.VarY), 1)
@@ -1232,7 +1227,8 @@ def logistics_network(
             r.VarY.upBound = r[upb]
 
         tbfa[tbfa[upb] != np.inf].apply(fupb, 1)
-    m.solve()
+    solver = PULP_CBC_CMD(msg=False)
+    m.solve(solver)
     if m.status == 1:
         tbdi2["ValX"] = tbdi2.VarX.apply(value)
         tbfa["ValY"] = tbfa.VarY.apply(value)
@@ -1275,7 +1271,8 @@ def sudoku(s, checkOnlyOne=False):
             m += lpSum(v.Var) == 1
     for _, r in a[a.固 == True].iterrows():  # noqa
         m += r.Var == 1
-    m.solve()
+    solver = PULP_CBC_CMD(msg=False)
+    m.solve(solver)
     if m.status != 1:
         return None, None
     a["Val"] = a.Var.apply(value)
@@ -1283,7 +1280,7 @@ def sudoku(s, checkOnlyOne=False):
     if checkOnlyOne:
         fr = a[(a.Val > 0.5) & (a.固 != True)].Var  # noqa
         m += lpSum(fr) <= len(fr) - 1
-        return res, m.solve() != 1
+        return res, m.solve(solver) != 1
     return res, None
 
 
@@ -1511,9 +1508,7 @@ class MultiKeyDict:
 
     ekey: Tuple = tuple()  # 空キー
 
-    def __init__(
-        self, dc={}, conv=None, iskey=None, dtype=dict, extend=False, cache=2048
-    ):
+    def __init__(self, dc={}, conv=None, iskey=None, dtype=dict, extend=False, cache=2048):
         """
         親子情報ペア(「（キー,値)の配列」と「子キーごとの要素の辞書」のタプル)
         dc: 元辞書
@@ -1580,11 +1575,7 @@ class MultiKeyDict:
         return self._lst if key is None else [(k, i) for k, i in self._lst if k == key]
 
     def dict(self, key=None):
-        return (
-            self._dct
-            if key is None
-            else {k: v for k, v in self._dct.items() if k == key}
-        )
+        return self._dct if key is None else {k: v for k, v in self._dct.items() if k == key}
 
     def items(self, func=None):
         d = self[MultiKeyDict.ekey].items()
@@ -1654,9 +1645,7 @@ class unionfind:
                     u.unite(i + j * nw, i + j * nw - nw)
                 if i > 0 and ll[i][j] == ll[i - 1][j]:
                     u.unite(i + j * nw, i + j * nw - 1)
-        return f >= 0 and all(
-            [u.issame(f, i + j * nw) for i in rw for j in rh if ll[i][j]]
-        )
+        return f >= 0 and all([u.issame(f, i + j * nw) for i in rw for j in rh if ll[i][j]])
 
     @staticmethod
     def isconnectedlist(nw, nh, lst):

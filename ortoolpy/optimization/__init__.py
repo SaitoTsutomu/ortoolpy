@@ -5,7 +5,26 @@ import pandas as pd
 from IPython.display import HTML
 from more_itertools import first, pairwise
 
-from .. import *
+from .. import (
+    TwoDimPackingClass,
+    binpacking,
+    chinese_postman,
+    combinatorial_auction,
+    facility_location,
+    facility_location_without_capacity,
+    gap,
+    graph_from_table,
+    knapsack,
+    maximum_cut,
+    maximum_stable_set,
+    quad_assign,
+    set_covering,
+    shift_scheduling,
+    stable_matching,
+    tsp,
+    two_machine_flowshop,
+    vrp,
+)
 
 
 def typical_optimization_impl(sel):
@@ -94,7 +113,7 @@ def typical_optimization_impl(sel):
   <td>StableMatching</td>
 </tr>
 </table>
-"""
+"""  # noqa
     )
 
 
@@ -116,10 +135,8 @@ def MinimumSpanningTree(
         None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
     )
     t = nx.minimum_spanning_tree(g, weight=weight_label)
-    dftmp = pd.DataFrame(
-        [f"{min(i,j)}-{max(i,j)}" for i, j in t.edges()], columns=["FrTo_"]
-    )
-    return pd.merge(dfed, dftmp).drop("FrTo_", 1)
+    dftmp = pd.DataFrame([f"{min(i,j)}-{max(i,j)}" for i, j in t.edges()], columns=["FrTo_"])
+    return pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
 
 
 def MaximumStableSet(
@@ -214,9 +231,8 @@ def DijkstraPath(
         None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
     )
     rt = nx.dijkstra_path(g, source, target, weight=weight_label)
-    return pd.concat(
-        [dfed[dfed.FrTo_ == f"{min(i,j)}-{max(i,j)}"] for i, j in pairwise(rt)]
-    ).drop("FrTo_", 1)
+    df = pd.concat([dfed[dfed.FrTo_ == f"{min(i,j)}-{max(i,j)}"] for i, j in pairwise(rt)])
+    return df.drop("FrTo_", axis=1)
 
 
 def MaximumFlow(
@@ -247,15 +263,10 @@ def MaximumFlow(
     )
     r, t = nx.maximum_flow(g, source, target, capacity=capacity_label)
     dftmp = pd.DataFrame(
-        [
-            (f"{min(i,j)}-{max(i,j)}", f)
-            for i, d in t.items()
-            for j, f in d.items()
-            if f
-        ],
+        [(f"{min(i,j)}-{max(i,j)}", f) for i, d in t.items() for j, f in d.items() if f],
         columns=["FrTo_", flow_label],
     )
-    return r, pd.merge(dfed, dftmp).drop("FrTo_", 1)
+    return r, pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
 
 
 def MinCostFlow(
@@ -294,9 +305,7 @@ def MinCostFlow(
         to_label=to_label,
         **kwargs,
     )
-    t = nx.min_cost_flow(
-        g, demand=demand_label, capacity=capacity_label, weight=weight_label
-    )
+    t = nx.min_cost_flow(g, demand=demand_label, capacity=capacity_label, weight=weight_label)
     dftmp = pd.DataFrame(
         [(i, j, f) for i, d in t.items() for j, f in d.items() if f],
         columns=[from_label, to_label, flow_label],
@@ -346,14 +355,10 @@ def Vrp(
     )
     t = vrp(g.to_directed(), nv, capa, demand=demand_label, cost=cost_label)
     dftmp = pd.DataFrame(
-        [
-            (f"{min(i,j)}-{max(i,j)}", h, k)
-            for h, l in enumerate(t)
-            for k, (i, j) in enumerate(l)
-        ],
+        [(f"{min(i,j)}-{max(i,j)}", h, k) for h, l in enumerate(t) for k, (i, j) in enumerate(l)],
         columns=["FrTo_", vehicle_label, series_label],
     )
-    return pd.merge(dftmp, dfed).drop("FrTo_", 1)
+    return pd.merge(dftmp, dfed).drop("FrTo_", axis=1)
 
 
 def Tsp(dfnd, x_label="x", y_label="y", **kwargs):
@@ -372,9 +377,7 @@ def Tsp(dfnd, x_label="x", y_label="y", **kwargs):
     return r, dfnd.iloc[t]
 
 
-def ChinesePostman(
-    dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs
-):
+def ChinesePostman(dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs):
     """
     中国人郵便配達問題
     入力
@@ -397,7 +400,7 @@ def ChinesePostman(
     )
     r, t = chinese_postman(g, weight=weight_label)
     dftmp = pd.DataFrame([(f"{min(i,j)}-{max(i,j)}",) for i, j in t], columns=["FrTo_"])
-    return r, pd.merge(dftmp, dfed).drop("FrTo_", 1)
+    return r, pd.merge(dftmp, dfed).drop("FrTo_", axis=1)
 
 
 def SetCovering(
@@ -431,9 +434,7 @@ def SetCovering(
     return df
 
 
-def SetPartition(
-    df, id_label="id", weight_label="weight", element_label="element", **kwargs
-):
+def SetPartition(df, id_label="id", weight_label="weight", element_label="element", **kwargs):
     """
     集合分割問題
     入力
@@ -444,9 +445,7 @@ def SetPartition(
     出力
         選択された候補リストの番号リスト
     """
-    return SetCovering(
-        df, id_label, weight_label, element_label, is_partition=True, **kwargs
-    )
+    return SetCovering(df, id_label, weight_label, element_label, is_partition=True, **kwargs)
 
 
 def CombinatorialAuction(
@@ -492,9 +491,7 @@ def CombinatorialAuction(
     return df
 
 
-def TwoMachineFlowshop(
-    df, first_machine_label="first", second_machine_label="second", **kwargs
-):
+def TwoMachineFlowshop(df, first_machine_label="first", second_machine_label="second", **kwargs):
     """
     入力
         df: ジョブのDataFrameもしくはCSVファイル名
@@ -718,10 +715,7 @@ def QuadAssign(
         + 1
     )
     q = [
-        [
-            first(dfqu[(dfqu[from_label] == i) & (dfqu[to_label] == j)][quant_label], 0)
-            for j in r
-        ]
+        [first(dfqu[(dfqu[from_label] == i) & (dfqu[to_label] == j)][quant_label], 0) for j in r]
         for i in r
     ]
     d = [
@@ -764,23 +758,15 @@ def Gap(
     a = range(df[agent_label].max() + 1)
     j = range(df[job_label].max() + 1)
     c = [
-        [
-            first(df[(df[agent_label] == i) & (df[job_label] == k)][cost_label], 0)
-            for k in j
-        ]
+        [first(df[(df[agent_label] == i) & (df[job_label] == k)][cost_label], 0) for k in j]
         for i in a
     ]
     r = [
-        [
-            first(df[(df[agent_label] == i) & (df[job_label] == k)][req_label], 1e6)
-            for k in j
-        ]
+        [first(df[(df[agent_label] == i) & (df[job_label] == k)][req_label], 1e6) for k in j]
         for i in a
     ]
     t = gap(c, r, capacity)
-    return pd.concat(
-        [df[(df[agent_label] == i) & (df[job_label] == k)] for k, i in enumerate(t)]
-    )
+    return pd.concat([df[(df[agent_label] == i) & (df[job_label] == k)] for k, i in enumerate(t)])
 
 
 def MaxMatching(dfed, from_label="node1", to_label="node2", **kwargs):
@@ -798,9 +784,7 @@ def MaxMatching(dfed, from_label="node1", to_label="node2", **kwargs):
     )
 
 
-def MaxWeightMatching(
-    dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs
-):
+def MaxWeightMatching(dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs):
     """
     最大重みマッチング問題
     入力
@@ -818,7 +802,7 @@ def MaxWeightMatching(
         g.adj[i][j]["weight"] = g.adj[i][j].get(weight_label, 1)
     t = nx.max_weight_matching(g)
     dftmp = pd.DataFrame([f"{min(i,j)}-{max(i,j)}" for i, j in t], columns=["FrTo_"])
-    return pd.merge(dfed, dftmp).drop("FrTo_", 1)
+    return pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
 
 
 def StableMatching(
@@ -874,4 +858,3 @@ if _ip:
     _ip.register_magic_function(
         typical_optimization_impl, magic_kind="line", magic_name="typical_optimization"
     )
-
