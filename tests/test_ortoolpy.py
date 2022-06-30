@@ -1,3 +1,4 @@
+import pytest
 from ortoolpy.optimization import (
     BinPacking,
     ChinesePostman,
@@ -55,6 +56,7 @@ def test_Vrp(snapshot):
     snapshot.assert_match(res)
 
 
+@pytest.mark.skip
 def test_Tsp(snapshot):
     res = Tsp("data/node1.csv")
     snapshot.assert_match(res)
