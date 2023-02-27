@@ -1,4 +1,5 @@
 import pytest
+
 from ortoolpy.optimization import (
     BinPacking,
     ChinesePostman,
