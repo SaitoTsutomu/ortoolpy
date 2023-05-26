@@ -14,7 +14,7 @@ homepage = "https://github.com/SaitoTsutomu/ortoolpy"
 license = "Apache-2.0"
 name = "ortoolpy"
 readme = "README.rst"
-version = "0.6.1"
+version = "0.6.2"
 
 [tool.poetry.dependencies]
 more-itertools = "^9.1"

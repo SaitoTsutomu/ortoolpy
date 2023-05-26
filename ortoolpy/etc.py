@@ -1,8 +1,7 @@
-"""
-Copyright: 2015-2022 Saito Tsutomu
-License: Python Software Foundation License
-"""
+# Copyright: 2015-2023 Saito Tsutomu
+# License: Apache-2.0 License
 from collections import defaultdict
+from functools import lru_cache
 from math import ceil, sqrt
 from typing import Iterable, Tuple
 
@@ -1210,7 +1209,7 @@ def logistics_network(
     tbdi2 = pd.merge(tbdi, tbpr, on=fac)
     tbdi2["VarX"] = addvars(tbdi2.shape[0])
     tbfa["VarY"] = addvars(tbfa.shape[0])
-    tbsm = pd.concat([tbdi2.groupby(facprd).VarX.sum(), tbfa.groupby(facprd).VarY.sum()], 1)
+    tbsm = pd.concat([tbdi2.groupby(facprd).VarX.sum(), tbfa.groupby(facprd).VarY.sum()], axis=1)
     tbde2 = pd.merge(tbde, tbdi2.groupby([dep, prd]).VarX.sum().reset_index())
     m += lpDot(tbdi2[tcs], tbdi2.VarX) + lpDot(tbfa[pcs], tbfa.VarY)
     tbsm.apply(lambda r: m.addConstraint(r.VarX <= r.VarY), 1)
@@ -1430,8 +1429,6 @@ class AutoCountDict:
 
 class CacheDict:
     """Cached Dictionary"""
-
-    from functools import lru_cache
 
     def __init__(self, a=None):
         self._dct = {} if a is None else dict(a)
