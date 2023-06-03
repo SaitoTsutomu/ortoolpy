@@ -1433,7 +1433,7 @@ class CacheDict:
     def __init__(self, a=None):
         self._dct = {} if a is None else dict(a)
 
-    @lru_cache(maxsize=2048)
+    @lru_cache(maxsize=1024 * 1024)
     def __getitem__(self, k):
         return self._dct.__getitem__(k)
 
