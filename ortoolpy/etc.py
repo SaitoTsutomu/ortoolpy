@@ -1008,6 +1008,54 @@ class TwoDimPackingClass:
         return self.rate, self.result
 
 
+def binpacking_fixnum(
+    sizes: list[int], n_bins: int, as_index: bool = False
+) -> tuple[int, list[list[int]]]:
+    """bin packing(fix number of bins)
+
+    :param sizes: size of items
+    :param n_bins: number of bins
+    :param as_index: return index, defaults to False
+    :return: max size and list of bins
+    """
+    result: list[list[int]] = [[] for _ in range(n_bins)]
+    totals: list[int] = [0] * n_bins
+    for i in np.argsort(sizes)[::-1]:
+        sz = sizes[i]
+        k = np.argmin(totals)
+        result[k].append(i if as_index else sz)
+        totals[k] += sz
+    return max(totals), result
+
+
+def binpacking_fixsize(
+    sizes: list[int], limit: int, as_index: bool = False
+) -> tuple[int, list[list[int]]]:
+    """bin packing(fix number of size)
+
+    :param sizes: size of items
+    :param limit: limit of bin
+    :param as_index: return index, defaults to False
+    :return: number of bins and list of bins
+    """
+    if (sizes > np.array(limit)).any():
+        raise ValueError("Over limit")
+    result: list[list[int]] = [[]]
+    totals: list[int] = [0]
+    for i in np.argsort(sizes)[::-1]:
+        sz = sizes[i]
+        rs = i if as_index else sz
+        cands = np.where(totals <= np.array(limit - sz), totals, -1)
+        k = cands.argmax()
+        if cands[k] < 0:
+            result.append([rs])
+            totals.append(sz)
+        else:
+            result[k].append(rs)
+            totals[k] += sz
+    return len(totals), result
+
+
 def ordered_binpacking_sub(w, c, return_index=False):
     r, n = 0, 1
     if return_index:
