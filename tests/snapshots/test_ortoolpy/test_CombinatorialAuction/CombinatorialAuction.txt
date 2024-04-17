@@ -1,0 +1,4 @@
+   id  price element  buyer
+2   1   10.0       a      1
+4   3   14.0       b      1
+5   3    NaN       c      1

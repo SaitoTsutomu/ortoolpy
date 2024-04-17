@@ -1,0 +1,5 @@
+   id  weight element
+4   2     1.0       a
+5   2     NaN       d
+6   3     3.0       b
+7   3     NaN       c

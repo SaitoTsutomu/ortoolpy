@@ -14,25 +14,20 @@ homepage = "https://github.com/SaitoTsutomu/ortoolpy"
 license = "Apache-2.0"
 name = "ortoolpy"
 readme = "README.rst"
-version = "0.6.4"
+version = "0.7.0"
 
 [tool.poetry.dependencies]
-more-itertools = "^10.1"
-# change to ^2.0 at later
-pandas = ">=1.5.3"
-pulp = "^2.7"
-python = "^3.11"
+more-itertools = "^10.2"
+pandas = "^2.2"
+pulp = "^2.8"
+python = "^3.12"
 
 [tool.poetry.group.dev.dependencies]
-black = "^23.7"
-flake8 = "^6.1"
-isort = "^5.12"
-jupyterlab = "^4.0"
-matplotlib = "^3.7"
-mypy = "^1.5"
-networkx = "^3.1"
-pytest = "^7.4"
-snapshottest = "^0.6"
+jupyterlab = "^4.1"
+matplotlib = "^3.8"
+networkx = "^3.3"
+pytest = "^8.1"
+pytest-snapshot = "^0"
 
 [build-system]
 build-backend = "poetry.core.masonry.api"

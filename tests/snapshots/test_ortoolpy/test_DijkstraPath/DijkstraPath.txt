@@ -1,0 +1,4 @@
+   node1  node2  capacity  weight
+9      4      5         2       1
+3      0      4         2       2
+1      0      2         2       4
