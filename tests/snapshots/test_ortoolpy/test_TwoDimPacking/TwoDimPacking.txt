@@ -1,4 +1,4 @@
-(1.0,    width  height    x    y
+(np.float64(1.0),    width  height    x    y
 0    240     150    0    0
 1    260     100  240    0
 2    100     200  240  100

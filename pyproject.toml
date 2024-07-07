@@ -14,19 +14,19 @@ homepage = "https://github.com/SaitoTsutomu/ortoolpy"
 license = "Apache-2.0"
 name = "ortoolpy"
 readme = "README.rst"
-version = "0.7.0"
+version = "0.7.1"
 
 [tool.poetry.dependencies]
-more-itertools = "^10.2"
+more-itertools = "^10.3"
 pandas = "^2.2"
 pulp = "^2.8"
 python = "^3.12"
 
 [tool.poetry.group.dev.dependencies]
-jupyterlab = "^4.1"
-matplotlib = "^3.8"
+jupyterlab = "^4.2"
+matplotlib = "^3.9"
 networkx = "^3.3"
-pytest = "^8.1"
+pytest = "^8.2"
 pytest-snapshot = "^0"
 
 [build-system]
