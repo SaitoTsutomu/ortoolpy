@@ -49,9 +49,9 @@ class CoverByRect:
         y1 = y // 2
         y2 = y - y1
         r11 = CoverByRect.get(x1, y1)
-        r12 = [a + [0, y1, 0, y1] for a in CoverByRect.get(x1, y2)]
+        r12 = [[*a, 0, y1, 0, y1] for a in CoverByRect.get(x1, y2)]
         r21 = [a[[1, 0, 3, 2]] + [x1, 0, x1, 0] for a in CoverByRect.get(y1, x2)]
-        r22 = [a + [x1, y1, x1, y1] for a in CoverByRect.get(x2, y2)]
+        r22 = [[*a, x1, y1, x1, y1] for a in CoverByRect.get(x2, y2)]
         res = np.r_[r11, r12, r21, r22]
         CoverByRect.cache[x, y] = len(res), res
         save_cache(CoverByRect.cache)
@@ -73,12 +73,12 @@ class CoverByRect:
                 n1, r1 = CoverByRect._calc(i, y)
                 n2, r2 = CoverByRect._calc(x - i, y)
                 if n1 + n2 < bst[0]:
-                    bst = n1 + n2, np.r_[r1, r2 + [i, 0, i, 0]]
+                    bst = n1 + n2, np.r_[r1, [*r2, i, 0, i, 0]]
             for i in range(y // 2, 0, -1):
                 n1, r1 = CoverByRect._calc(x, i)
                 n2, r2 = CoverByRect._calc(x, y - i)
                 if n1 + n2 < bst[0]:
-                    bst = n1 + n2, np.r_[r1, r2 + [0, i, 0, i]]
+                    bst = n1 + n2, np.r_[r1, [*r2, 0, i, 0, i]]
             if x == y:
                 for i in range(2 - x % 2, x, 2):
                     j = (x - i) // 2
@@ -89,8 +89,8 @@ class CoverByRect:
                             n1 + n2 * 4,
                             np.r_[
                                 r2,
-                                r2 + [x - j, j, x - j, j],
-                                r1 + [j, j, j, j],
+                                [*r2, x - j, j, x - j, j],
+                                [*r1, j, j, j, j],
                                 [k[[1, 0, 3, 2]] + [j, 0, j, 0] for k in r2],
                                 [k[[1, 0, 3, 2]] + [0, x - j, 0, x - j] for k in r2],
                             ],

@@ -40,7 +40,7 @@ ignore_missing_imports = true
 src = ["src"]
 
 [tool.ruff.lint]
-ignore = ["E501"]
+ignore = ["E501", "E731", "N802"]
 select = [
   "F", # Pyflakes https://docs.astral.sh/ruff/rules/#pyflakes-f
   "E", # pycodestyle Error https://docs.astral.sh/ruff/rules/#error-e
@@ -56,7 +56,7 @@ select = [
 ]
 
 [tool.ruff.lint.mccabe]
-max-complexity = 10
+max-complexity = 11
 
 [build-system]
 build-backend = "hatchling.build"

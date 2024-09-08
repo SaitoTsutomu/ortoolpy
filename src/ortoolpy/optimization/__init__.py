@@ -113,13 +113,11 @@ def typical_optimization_impl(sel):
   <td>StableMatching</td>
 </tr>
 </table>
-"""  # noqa
+"""
     )
 
 
-def MinimumSpanningTree(
-    dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs
-):
+def MinimumSpanningTree(dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs):
     """
     最小全域木問題
     入力
@@ -131,9 +129,7 @@ def MinimumSpanningTree(
         選択された辺のDataFrame
         (重みの和は、結果のweight_labelのsum())
     """
-    g, _, dfed = graph_from_table(
-        None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
-    )
+    g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     t = nx.minimum_spanning_tree(g, weight=weight_label)
     dftmp = pd.DataFrame([f"{min(i,j)}-{max(i,j)}" for i, j in t.edges()], columns=["FrTo_"])
     return pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
@@ -227,9 +223,7 @@ def DijkstraPath(
     出力
         最大カットと片方の集合の点のDataFrame
     """
-    g, _, dfed = graph_from_table(
-        None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
-    )
+    g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     rt = nx.dijkstra_path(g, source, target, weight=weight_label)
     df = pd.concat([dfed[dfed.FrTo_ == f"{min(i,j)}-{max(i,j)}"] for i, j in pairwise(rt)])
     return df.drop("FrTo_", axis=1)
@@ -258,9 +252,7 @@ def MaximumFlow(
     出力
         最大流と辺のDataFrame
     """
-    g, _, dfed = graph_from_table(
-        None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
-    )
+    g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     r, t = nx.maximum_flow(g, source, target, capacity=capacity_label)
     dftmp = pd.DataFrame(
         [(f"{min(i,j)}-{max(i,j)}", f) for i, d in t.items() for j, f in d.items() if f],
@@ -355,7 +347,7 @@ def Vrp(
     )
     t = vrp(g.to_directed(), nv, capa, demand=demand_label, cost=cost_label)
     dftmp = pd.DataFrame(
-        [(f"{min(i,j)}-{max(i,j)}", h, k) for h, l in enumerate(t) for k, (i, j) in enumerate(l)],
+        [(f"{min(i,j)}-{max(i,j)}", h, k) for h, ll in enumerate(t) for k, (i, j) in enumerate(ll)],
         columns=["FrTo_", vehicle_label, series_label],
     )
     return pd.merge(dftmp, dfed).drop("FrTo_", axis=1)
@@ -372,7 +364,7 @@ def Tsp(dfnd, x_label="x", y_label="y", **kwargs):
         総距離と点のDataFrame
     """
     dfnd = graph_from_table(dfnd, None, no_graph=True, **kwargs)[1]
-    pos = [p for p in zip(dfnd[x_label], dfnd[y_label])]
+    pos = [p for p in zip(dfnd[x_label], dfnd[y_label], strict=True)]
     r, t = tsp(pos)
     return r, dfnd.iloc[t]
 
@@ -505,27 +497,27 @@ def TwoMachineFlowshop(df, first_machine_label="first", second_machine_label="se
     return r, df.iloc[t]
 
 
-def ShiftScheduling(ndy, nst, shift, proh, need):
+def ShiftScheduling(ndy, nst, shift, prohibit, need):
     """
     勤務スケジューリング問題
     入力
         ndy: 日数
         nst: スタッフ数
         shift: シフト(1文字)のリスト
-        proh: 禁止パターン(シフトの文字列)のリスト
+        prohibit: 禁止パターン(シフトの文字列)のリスト
         need: シフトごとの必要人数リスト(日ごと)
     出力
         日ごとスタッフごとのシフトのDataFrame
     """
-    r = shift_scheduling(ndy, nst, shift, proh, need)
+    r = shift_scheduling(ndy, nst, shift, prohibit, need)
     df = pd.DataFrame(
         np.vectorize(lambda i: shift[i])(r),
         columns=[chr(65 + i) for i in range(nst)],
         index=["%d日目" % i for i in range(1, ndy + 1)],
     )
     for sft, lst in need.items():
-        df["%s必要" % sft] = lst
-        df["%s計画" % sft] = (df.iloc[:, :4] == sft).sum(1)
+        df[f"{sft}必要"] = lst
+        df[f"{sft}計画"] = (df.iloc[:, :4] == sft).sum(1)
     return df
 
 
@@ -619,7 +611,7 @@ def FacilityLocation(
 ):
     """
     施設配置問題
-        P-メディアン問題：総距離×量の和の最小化
+        P-メディアン問題:総距離x量の和の最小化
     入力
         df: ポイントのDataFrameもしくはCSVファイル名
         p: 施設数上限
@@ -654,7 +646,7 @@ def FacilityLocationWithoutCapacity(
 ):
     """
     施設配置問題
-        P-メディアン問題：総距離×量の和の最小化
+        P-メディアン問題:総距離x量の和の最小化
     入力
         df: ポイントのDataFrameもしくはCSVファイル名
         p: 施設数上限
@@ -714,10 +706,7 @@ def QuadAssign(
         )
         + 1
     )
-    q = [
-        [first(dfqu[(dfqu[from_label] == i) & (dfqu[to_label] == j)][quant_label], 0) for j in r]
-        for i in r
-    ]
+    q = [[first(dfqu[(dfqu[from_label] == i) & (dfqu[to_label] == j)][quant_label], 0) for j in r] for i in r]
     d = [
         [
             first(
@@ -757,14 +746,8 @@ def Gap(
     df = graph_from_table(df, None, no_graph=True, **kwargs)[1]
     a = range(df[agent_label].max() + 1)
     j = range(df[job_label].max() + 1)
-    c = [
-        [first(df[(df[agent_label] == i) & (df[job_label] == k)][cost_label], 0) for k in j]
-        for i in a
-    ]
-    r = [
-        [first(df[(df[agent_label] == i) & (df[job_label] == k)][req_label], 1e6) for k in j]
-        for i in a
-    ]
+    c = [[first(df[(df[agent_label] == i) & (df[job_label] == k)][cost_label], 0) for k in j] for i in a]
+    r = [[first(df[(df[agent_label] == i) & (df[job_label] == k)][req_label], 1e6) for k in j] for i in a]
     t = gap(c, r, capacity)
     return pd.concat([df[(df[agent_label] == i) & (df[job_label] == k)] for k, i in enumerate(t)])
 
@@ -779,9 +762,7 @@ def MaxMatching(dfed, from_label="node1", to_label="node2", **kwargs):
     出力
         選択された辺のDataFrame
     """
-    return MaxWeightMatching(
-        dfed, from_label=from_label, to_label=to_label, weight_label="", **kwargs
-    )
+    return MaxWeightMatching(dfed, from_label=from_label, to_label=to_label, weight_label="", **kwargs)
 
 
 def MaxWeightMatching(dfed, from_label="node1", to_label="node2", weight_label="weight", **kwargs):
@@ -795,9 +776,7 @@ def MaxWeightMatching(dfed, from_label="node1", to_label="node2", weight_label="
     出力
         選択された辺のDataFrame
     """
-    g, _, dfed = graph_from_table(
-        None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs
-    )
+    g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     for i, j in g.edges():
         g.adj[i][j]["weight"] = g.adj[i][j].get(weight_label, 1)
     t = nx.max_weight_matching(g)
@@ -848,13 +827,11 @@ def StableMatching(
         for i in f
     ]
     t = stable_matching(prefm, preff)
-    return pd.concat(
-        [df[(df[female_label] == i) & (df[male_label] == j)] for i, j in t.items()]
-    ).sort_values(male_label)
+    return pd.concat([df[(df[female_label] == i) & (df[male_label] == j)] for i, j in t.items()]).sort_values(
+        male_label
+    )
 
 
 _ip = IPython.core.getipython.get_ipython()
 if _ip:
-    _ip.register_magic_function(
-        typical_optimization_impl, magic_kind="line", magic_name="typical_optimization"
-    )
+    _ip.register_magic_function(typical_optimization_impl, magic_kind="line", magic_name="typical_optimization")
