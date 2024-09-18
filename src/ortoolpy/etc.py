@@ -519,7 +519,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     assert isinstance(dist[0, 1], int | np.int32 | np.int64), "Distance must be int."
     try:
         from ortools.constraint_solver import pywrapcp, routing_enums_pb2
-    except ModuleNotFoundError:
+    except ImportError:
         print('Please "pip install ortools"')
         raise
     manager = pywrapcp.RoutingIndexManager(nn, nv, depo)
