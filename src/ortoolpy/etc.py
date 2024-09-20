@@ -1,26 +1,34 @@
 # Copyright: 2015-2024 Saito Tsutomu
 # License: Apache-2.0 License
+import re
 from collections import defaultdict
 from collections.abc import Iterable
+from itertools import combinations, islice, pairwise, permutations, product
 from math import ceil, sqrt
+from random import seed, shuffle
 
 import numpy as np
 import pandas as pd
-from more_itertools import always_iterable, pairwise
+from more_itertools import always_iterable, iterate, take
 from pulp import (
     PULP_CBC_CMD,
+    LpAffineExpression,
     LpBinary,
+    LpConstraint,
+    LpConstraintGE,
+    LpConstraintLE,
     LpInteger,
     LpMaximize,
     LpMinimize,
     LpProblem,
+    LpStatusOptimal,
     LpVariable,
     lpDot,
     lpSum,
     value,
 )
 
-iterable = lambda a: isinstance(a, Iterable)
+iterable = lambda a: isinstance(a, Iterable)  # noqa: E731 RUF100
 
 
 def L(s, i=[-1]):  # noqa: B006
@@ -66,15 +74,14 @@ class LpProblemEx(LpProblem):
         else:
             for df in dfs:
                 if "Val" in df:
-                    df.drop("Val", 1, inplace=True)
+                    df.drop("Val", 1, inplace=True)  # noqa: PD002
         return self.status
 
 
 def model(*n, ismin=True, df=None, dfb=None, dfi=None, **ad):
     """最小化のモデル"""
     ad["sense"] = LpMinimize if ismin else LpMaximize
-    m = LpProblemEx(*n, **ad, df=df, dfb=dfb, dfi=dfi)
-    return m
+    return LpProblemEx(*n, **ad, df=df, dfb=dfb, dfi=dfi)
 
 
 def model_min(*n, df=None, dfb=None, dfi=None, **ad):
@@ -138,7 +145,7 @@ def addintvars(*n, **ad):
 
 def _addvarsRec(va, *n, **ad):
     if n == ():
-        return None
+        return
     b = len(n) == 1
     for _ in range(n[0]):
         if b:
@@ -151,8 +158,6 @@ def _addvarsRec(va, *n, **ad):
 
 def addline(m, p1, p2, x, y, upper=True):
     """2点直線制約"""
-    from pulp import LpConstraint, LpConstraintGE, LpConstraintLE
-
     dx = p2[0] - p1[0]
     if dx != 0:
         m += LpConstraint(
@@ -200,29 +205,26 @@ def random_model(nv, nc, sense=1, seed=1, rate_free=0, rate_coef=0.1, rate_eq=0,
     rate_eq:制約条件等号割合
     feasible:実行可能かどうか
     """
-    from pulp import LpConstraint, LpStatusOptimal
-
     rate_coef = max(1e-3, rate_coef)
-    if seed:
-        np.random.seed(seed)
+    rng = np.random.default_rng(seed)
     var_count = [0]
     x = np.array(addvars(nv, var_count=var_count))
     solver = PULP_CBC_CMD(msg=False)
     while True:
         m = LpProblem(sense=sense)
-        m += lpDot(np.random.rand(nv) * 2 - 1, x)
-        for v in x[np.random.rand(nv) < rate_free]:
+        m += lpDot(rng.random(nv) * 2 - 1, x)
+        for v in x[rng.random(nv) < rate_free]:
             v.lowBound = None
         rem = nc
         while rem > 0:
-            a = np.random.rand(nv) * 2 - 1
-            a[np.random.rand(nv) >= rate_coef] = 0
+            a = rng.random(nv) * 2 - 1
+            a[rng.random(nv) >= rate_coef] = 0
             if (a == 0).all():
                 continue
             if (a <= 0).all():
                 a = -a
-            se = int(np.random.rand() >= rate_eq) * np.random.choice([-1, 1])
-            m += LpConstraint(lpDot(a, x), se, rhs=np.random.rand())
+            se = int(rng.random() >= rate_eq) * rng.choice([-1, 1])
+            m += LpConstraint(lpDot(a, x), se, rhs=rng.random())
             rem -= 1
         if not feasible or m.solve(solver) == LpStatusOptimal:
             return m
@@ -299,7 +301,7 @@ def satisfy(m, eps=1e-6):
     return True
 
 
-def graph_from_table(
+def graph_from_table(  # noqa: PLR0912
     dfnd,
     dfed,
     directed=False,
@@ -316,9 +318,7 @@ def graph_from_table(
     Excelの場合:[Excelファイル名]シート名
     from_to: 'from-to'となる列を追加(ただしfrom < to)
     """
-    import re
-
-    import networkx as nx
+    import networkx as nx  # noqa: PLC0415
 
     if isinstance(dfnd, str):
         m = re.match(r"\[([^]]+)](\w+)", dfnd)
@@ -339,13 +339,13 @@ def graph_from_table(
         else:
             g = nx.DiGraph() if directed else nx.Graph()
         if dfnd is not None:
-            for r in dfnd.itertuples(False):
+            for r in dfnd.itertuples(index=False):
                 dc = r._asdict()
                 g.add_node(dc[node_label], **dc)
         if from_to:
             dfft = dfed[[from_label, to_label]]
             dfed[from_to] = dfft.min(1).astype(str) + "-" + dfft.max(1).astype(str)
-        for r in dfed.itertuples(False):
+        for r in dfed.itertuples(index=False):
             dc = r._asdict()
             g.add_edge(dc[from_label], dc[to_label], **dc)
     return g, dfnd, dfed
@@ -353,7 +353,7 @@ def graph_from_table(
 
 def networkx_draw(g, dcpos=None, node_label="id", x_label="x", y_label="y", **kwargs):
     """グラフを描画"""
-    import networkx as nx
+    import networkx as nx  # noqa: PLC0415
 
     if not dcpos:
         dcpos = {r[node_label]: (r[x_label], r[y_label]) for i, r in g.nodes.items()}
@@ -470,13 +470,12 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
         運搬車ごとの頂点対のリスト
     """
     if method == "ortools":
-        import networkx as nx
+        import networkx as nx  # noqa: PLC0415
 
         dd = nx.to_numpy_matrix(g, weight=cost, nonedge=999999).astype(int)
         dem = nx.get_node_attributes(g, demand)
         routes = ortools_vrp(len(dd), dd, nv, capa, dem)
         return [list(pairwise(route)) for route in routes]
-    from itertools import islice
 
     rv = range(nv)
     m = LpProblem()
@@ -518,7 +517,10 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     """
     assert isinstance(dist[0, 1], int | np.int32 | np.int64), "Distance must be int."
     try:
-        from ortools.constraint_solver import pywrapcp, routing_enums_pb2
+        from ortools.constraint_solver import (  # noqa: PLC0415
+            pywrapcp,
+            routing_enums_pb2,
+        )
     except ImportError:
         print('Please "pip install ortools"')
         raise
@@ -526,7 +528,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     routing = pywrapcp.RoutingModel(manager)
     routing.SetArcCostEvaluatorOfAllVehicles(get_callback_index2(manager, routing, dist))
     if demands is not None:
-        routing.AddDimension(get_callback_index1(manager, routing, demands), 0, capa, True, "Capacity")
+        routing.AddDimension(get_callback_index1(manager, routing, demands), 0, capa, True, "Capacity")  # noqa: FBT003
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     if limit_time:
@@ -550,7 +552,7 @@ def tsp(nodes, dist=None, method=None):
         距離と点番号リスト
     """
     if dist is None:
-        from scipy.spatial import distance
+        from scipy.spatial import distance  # noqa: PLC0415
 
         dist = distance.cdist(nodes, nodes)
     if method == "ortools":  # Approximate solution
@@ -568,8 +570,6 @@ def tsp1(nodes, dist):
     出力
         距離と点番号リスト
     """
-    from more_itertools import iterate, take
-
     n = len(nodes)
     df = pd.DataFrame(
         [(i, j, dist[i, j]) for i in range(n) for j in range(n) if i != j],
@@ -583,11 +583,11 @@ def tsp1(nodes, dist):
     for _, v in df.groupby("NodeI"):
         m += lpSum(v.VarIJ) == 1  # 出次数制約
         m += lpSum(v.VarJI) == 1  # 入次数制約
-    for i, j, _, vij, vji in df.query("NodeI!=0 & NodeJ!=0").itertuples(False):
+    for i, j, _, vij, vji in df.query("NodeI!=0 & NodeJ!=0").itertuples(index=False):
         m += u[i] + 1 - (n - 1) * (1 - vij) + (n - 3) * vji <= u[j]  # 持ち上げポテンシャル制約(MTZ)
-    for _, j, _, v0j, vj0 in df.query("NodeI==0").itertuples(False):
+    for _, j, _, v0j, vj0 in df.query("NodeI==0").itertuples(index=False):
         m += 1 + (1 - v0j) + (n - 3) * vj0 <= u[j]  # 持ち上げ下界制約
-    for i, _, _, vi0, v0i in df.query("NodeJ==0").itertuples(False):
+    for i, _, _, vi0, v0i in df.query("NodeJ==0").itertuples(index=False):
         m += u[i] <= (n - 1) - (1 - vi0) - (n - 3) * v0i  # 持ち上げ上界制約
     solver = PULP_CBC_CMD(msg=False)
     m.solve(solver)
@@ -596,7 +596,7 @@ def tsp1(nodes, dist):
     return value(m.objective), list(take(n, iterate(lambda k: dc[k], 0)))
 
 
-def tsp2(pos):  # noqa: C901
+def tsp2(pos):  # noqa: C901 PLR0912
     """
     巡回セールスマン問題
     入力
@@ -610,7 +610,7 @@ def tsp2(pos):  # noqa: C901
     v = {}
     for i in range(num):
         for j in range(i + 1, num):
-            v[i, j] = v[j, i] = LpVariable("v%d%d" % (i, j), cat=LpBinary)
+            v[i, j] = v[j, i] = LpVariable(f"v{i}{j}", cat=LpBinary)
     m += lpDot(
         [np.linalg.norm(pos[i] - pos[j]) for i, j in v if i < j],
         [x for (i, j), x in v.items() if i < j],
@@ -662,8 +662,6 @@ def tsp2(pos):  # noqa: C901
 
 
 def tsp3(point):
-    from itertools import permutations
-
     n = len(point)
     bst, mn = None, 1e100
     for d in permutations(range(1, n)):
@@ -684,9 +682,7 @@ def chinese_postman(g, weight="weight"):
     出力
         距離と頂点リスト
     """
-    from itertools import combinations
-
-    import networkx as nx
+    import networkx as nx  # noqa: PLC0415
 
     assert not g.is_directed()
     g = nx.MultiGraph(g)
@@ -696,7 +692,7 @@ def chinese_postman(g, weight="weight"):
     h = nx.Graph()
     for i, j in combinations(subnd, 2):
         h.add_edge(i, j, weight=mx - dd[i][j])
-    for i, j in nx.max_weight_matching(h, True):  # 最大重み最大マッチング問題
+    for i, j in nx.max_weight_matching(h, maxcardinality=True):  # 最大重み最大マッチング問題
         g.add_edge(i, j, weight=dd[i][j])
     return (
         sum(d[weight] for (i, j, _), d in g.edges.items()),
@@ -743,15 +739,14 @@ def set_partition(n, candidate):
     出力
         選択された候補リストの番号リスト
     """
-    return set_covering(n, candidate, True)
+    return set_covering(n, candidate, is_partition=True)
 
 
-def combinatorial_auction(n, candidate, limit=-1):
+def combinatorial_auction(candidate, limit=-1):
     """
     組合せオークション
       要素を重複売却せず、購入者ごとの候補数上限を超えないように売却金額を最大化
     入力
-        n: 要素数
         candidate: (金額, 部分集合, 購入者ID)の候補リスト。購入者IDはなくてもよい
         limit: 購入者ごとの候補数上限。-1なら無制限。購入者IDをキーにした辞書可
     出力
@@ -868,7 +863,7 @@ def knapsack(size, weight, capacity):
     return value(m.objective), [i for i in range(len(size)) if value(v[i]) > 0.5]
 
 
-def binpacking(c, w):  # noqa: C901
+def binpacking(c, w):  # noqa: C901 PLR0912
     """
     ビンパッキング問題
         列生成法で解く(近似解法)
@@ -878,8 +873,6 @@ def binpacking(c, w):  # noqa: C901
     出力
         ビンごとの荷物の大きさリスト
     """
-    from pulp import LpAffineExpression
-
     n = len(w)
     rn = range(n)
     mkp = LpProblem("knapsack", LpMaximize)  # 子問題
@@ -955,16 +948,13 @@ class TwoDimPackingClass:
                 (w, plh - h, ofw, ofh + h),
                 (plw - w, plh, ofw + w, ofh),
             )
-        else:
-            return (
-                h * (plw - w),
-                (plw - w, h, ofw + w, ofh),
-                (plw, plh - h, ofw, ofh + h),
-            )
+        return (
+            h * (plw - w),
+            (plw - w, h, ofw + w, ofh),
+            (plw, plh - h, ofw, ofh + h),
+        )
 
     def solve(self, iters=100, seed_=1):
-        from random import seed, shuffle
-
         bst, self.pos = 0, []
         seed(seed_)
         for _ in range(iters):
@@ -1015,7 +1005,8 @@ def binpacking_fixsize(sizes: list[int], limit: int, as_index: bool = False) -> 
     :return: number of bins and list of bins
     """
     if (sizes > np.array(limit)).any():
-        raise ValueError("Over limit")
+        msg = "Over limit"
+        raise ValueError(msg)
     result: list[list[int]] = [[]]
     totals: list[int] = [0]
     for i in np.argsort(sizes)[::-1]:
@@ -1066,7 +1057,7 @@ def ordered_binpacking(n, w, tol=1):
             cl = mid
         else:
             cu = mid
-    idx = ordered_binpacking_sub(w, cu, True)[1]
+    idx = ordered_binpacking_sub(w, cu, return_index=True)[1]
     while len(idx) <= n:
         idx.append(len(w))
     return idx
@@ -1144,8 +1135,6 @@ def quad_assign(quant, dist):
     出力
         評価値と対象ごとの割当先番号リスト
     """
-    from itertools import permutations
-
     n = len(quant)
     bst, mn, r = None, 1e100, range(n)
     for d in permutations(r):
@@ -1201,8 +1190,7 @@ def stable_matching(prefm, preff):
             if preff[f].index(res[f]) < preff[f].index(m):
                 freem.append(m)
                 continue
-            else:
-                freem.append(res[f])
+            freem.append(res[f])
         res[f] = m
     return res
 
@@ -1230,11 +1218,11 @@ def logistics_network(
     facprd = [fac, prd]
     m = LpProblem()
     tbpr = tbfa[facprd].sort_values(facprd).drop_duplicates()
-    tbdi2 = pd.merge(tbdi, tbpr, on=fac)
+    tbdi2 = tbdi.merge(tbpr, on=fac)
     tbdi2["VarX"] = addvars(tbdi2.shape[0])
     tbfa["VarY"] = addvars(tbfa.shape[0])
     tbsm = pd.concat([tbdi2.groupby(facprd).VarX.sum(), tbfa.groupby(facprd).VarY.sum()], axis=1)
-    tbde2 = pd.merge(tbde, tbdi2.groupby([dep, prd]).VarX.sum().reset_index())
+    tbde2 = tbde.merge(tbdi2.groupby([dep, prd]).VarX.sum().reset_index())
     m += lpDot(tbdi2[tcs], tbdi2.VarX) + lpDot(tbfa[pcs], tbfa.VarY)
     tbsm.apply(lambda r: m.addConstraint(r.VarX <= r.VarY), 1)
     tbde2.apply(lambda r: m.addConstraint(r.VarX >= r[dem]), 1)
@@ -1273,8 +1261,6 @@ def sudoku(s, check_only_one=False):
     '. . 4 |. . . |. . . '
     '. 1 . |. 6 4 |3 . 9 ')[0]
     """
-    import re
-    from itertools import product
 
     data = re.sub(r"[^\d.]", "", s)
     assert len(data) == 81
@@ -1318,8 +1304,8 @@ def groupbys(df1, df2, by=None, left_by=None, right_by=None, allow_right_empty=F
     """
     if by is None:
         by = df1.columns.intersection(df2.columns).tolist()
-    g1 = df1.groupby(left_by if left_by else by)
-    g2 = df2.groupby(right_by if right_by else by)
+    g1 = df1.groupby(left_by or by)
+    g2 = df2.groupby(right_by or by)
     for k, v1 in g1:
         v2 = df2.iloc[g2.indices.get(k, [])]
         if allow_right_empty or len(v2):
@@ -1381,7 +1367,7 @@ class unionfind:  # noqa: N801
                     uf.unite(i + j * nw, i + j * nw - nw)
                 if i > 0 and connected_list[i][j] == connected_list[i - 1][j]:
                     uf.unite(i + j * nw, i + j * nw - 1)
-        return f >= 0 and all([uf.is_same(f, i + j * nw) for i in rw for j in rh if connected_list[i][j]])
+        return f >= 0 and all(uf.is_same(f, i + j * nw) for i in rw for j in rh if connected_list[i][j])
 
     @staticmethod
     def is_connected_list(nw: int, nh: int, lst: list[list[bool]]):

@@ -10,7 +10,7 @@
  - オペレーションズ・リサーチとは: https://orsj.org/?page_id=420
 """
 
-from .etc import *  # noqa
+from .etc import *  # noqa: F401 F403 RUF100
 
 # from .optimization import * # networkx等が必要なのでデフォルトではimportしない
 

@@ -27,7 +27,7 @@ from .. import (
 )
 
 
-def typical_optimization_impl(sel):
+def typical_optimization_impl(_):
     return HTML(
         """\
 <table>
@@ -113,7 +113,7 @@ def typical_optimization_impl(sel):
   <td>StableMatching</td>
 </tr>
 </table>
-"""
+""",
     )
 
 
@@ -131,8 +131,8 @@ def MinimumSpanningTree(dfed, from_label="node1", to_label="node2", weight_label
     """
     g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     t = nx.minimum_spanning_tree(g, weight=weight_label)
-    dftmp = pd.DataFrame([f"{min(i,j)}-{max(i,j)}" for i, j in t.edges()], columns=["FrTo_"])
-    return pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
+    dftmp = pd.DataFrame([f"{min(i, j)}-{max(i, j)}" for i, j in t.edges()], columns=["FrTo_"])
+    return dfed.merge(dftmp).drop("FrTo_", axis=1)
 
 
 def MaximumStableSet(
@@ -225,7 +225,7 @@ def DijkstraPath(
     """
     g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     rt = nx.dijkstra_path(g, source, target, weight=weight_label)
-    df = pd.concat([dfed[dfed.FrTo_ == f"{min(i,j)}-{max(i,j)}"] for i, j in pairwise(rt)])
+    df = pd.concat([dfed[dfed.FrTo_ == f"{min(i, j)}-{max(i, j)}"] for i, j in pairwise(rt)])
     return df.drop("FrTo_", axis=1)
 
 
@@ -255,10 +255,10 @@ def MaximumFlow(
     g, _, dfed = graph_from_table(None, dfed, from_label=from_label, to_label=to_label, from_to="FrTo_", **kwargs)
     r, t = nx.maximum_flow(g, source, target, capacity=capacity_label)
     dftmp = pd.DataFrame(
-        [(f"{min(i,j)}-{max(i,j)}", f) for i, d in t.items() for j, f in d.items() if f],
+        [(f"{min(i, j)}-{max(i, j)}", f) for i, d in t.items() for j, f in d.items() if f],
         columns=["FrTo_", flow_label],
     )
-    return r, pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
+    return r, dfed.merge(dftmp).drop("FrTo_", axis=1)
 
 
 def MinCostFlow(
@@ -291,7 +291,7 @@ def MinCostFlow(
     g, dfnd, dfed = graph_from_table(
         dfnd,
         dfed,
-        True,
+        directed=True,
         node_label=node_label,
         from_label=from_label,
         to_label=to_label,
@@ -302,7 +302,7 @@ def MinCostFlow(
         [(i, j, f) for i, d in t.items() for j, f in d.items() if f],
         columns=[from_label, to_label, flow_label],
     )
-    return pd.merge(dfed, dftmp)
+    return dfed.merge(dftmp)
 
 
 def Vrp(
@@ -347,10 +347,10 @@ def Vrp(
     )
     t = vrp(g.to_directed(), nv, capa, demand=demand_label, cost=cost_label)
     dftmp = pd.DataFrame(
-        [(f"{min(i,j)}-{max(i,j)}", h, k) for h, ll in enumerate(t) for k, (i, j) in enumerate(ll)],
+        [(f"{min(i, j)}-{max(i, j)}", h, k) for h, ll in enumerate(t) for k, (i, j) in enumerate(ll)],
         columns=["FrTo_", vehicle_label, series_label],
     )
-    return pd.merge(dftmp, dfed).drop("FrTo_", axis=1)
+    return dftmp.merge(dfed).drop("FrTo_", axis=1)
 
 
 def Tsp(dfnd, x_label="x", y_label="y", **kwargs):
@@ -364,7 +364,7 @@ def Tsp(dfnd, x_label="x", y_label="y", **kwargs):
         総距離と点のDataFrame
     """
     dfnd = graph_from_table(dfnd, None, no_graph=True, **kwargs)[1]
-    pos = [p for p in zip(dfnd[x_label], dfnd[y_label], strict=True)]
+    pos = list(zip(dfnd[x_label], dfnd[y_label], strict=True))
     r, t = tsp(pos)
     return r, dfnd.iloc[t]
 
@@ -391,8 +391,8 @@ def ChinesePostman(dfed, from_label="node1", to_label="node2", weight_label="wei
         **kwargs,
     )
     r, t = chinese_postman(g, weight=weight_label)
-    dftmp = pd.DataFrame([(f"{min(i,j)}-{max(i,j)}",) for i, j in t], columns=["FrTo_"])
-    return r, pd.merge(dftmp, dfed).drop("FrTo_", axis=1)
+    dftmp = pd.DataFrame([(f"{min(i, j)}-{max(i, j)}",) for i, j in t], columns=["FrTo_"])
+    return r, dftmp.merge(dfed).drop("FrTo_", axis=1)
 
 
 def SetCovering(
@@ -467,7 +467,6 @@ def CombinatorialAuction(
     df = df.sort_values(id_label)
     g = df.groupby(id_label)
     r = combinatorial_auction(
-        len(df[element_label].unique()),
         [
             (
                 v[price_label].iloc[0],
@@ -513,7 +512,7 @@ def ShiftScheduling(ndy, nst, shift, prohibit, need):
     df = pd.DataFrame(
         np.vectorize(lambda i: shift[i])(r),
         columns=[chr(65 + i) for i in range(nst)],
-        index=["%d日目" % i for i in range(1, ndy + 1)],
+        index=[f"{i}日目" for i in range(1, ndy + 1)],
     )
     for sft, lst in need.items():
         df[f"{sft}必要"] = lst
@@ -704,7 +703,7 @@ def QuadAssign(
             dfqu[[from_label, to_label]].max().max(),
             dfdi[[from_label, to_label]].max().max(),
         )
-        + 1
+        + 1,
     )
     q = [[first(dfqu[(dfqu[from_label] == i) & (dfqu[to_label] == j)][quant_label], 0) for j in r] for i in r]
     d = [
@@ -718,7 +717,7 @@ def QuadAssign(
         for i in r
     ]
     r, t = quad_assign(q, d)
-    return r, pd.DataFrame([i for i in enumerate(t)], columns=[target_label, pos_label])
+    return r, pd.DataFrame(list(enumerate(t)), columns=[target_label, pos_label])
 
 
 def Gap(
@@ -780,8 +779,8 @@ def MaxWeightMatching(dfed, from_label="node1", to_label="node2", weight_label="
     for i, j in g.edges():
         g.adj[i][j]["weight"] = g.adj[i][j].get(weight_label, 1)
     t = nx.max_weight_matching(g)
-    dftmp = pd.DataFrame([f"{min(i,j)}-{max(i,j)}" for i, j in t], columns=["FrTo_"])
-    return pd.merge(dfed, dftmp).drop("FrTo_", axis=1)
+    dftmp = pd.DataFrame([f"{min(i, j)}-{max(i, j)}" for i, j in t], columns=["FrTo_"])
+    return dfed.merge(dftmp).drop("FrTo_", axis=1)
 
 
 def StableMatching(
@@ -828,7 +827,7 @@ def StableMatching(
     ]
     t = stable_matching(prefm, preff)
     return pd.concat([df[(df[female_label] == i) & (df[male_label] == j)] for i, j in t.items()]).sort_values(
-        male_label
+        male_label,
     )
 
 

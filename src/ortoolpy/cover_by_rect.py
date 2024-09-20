@@ -16,12 +16,12 @@ def get_cache(maxsize=100):
                 cache[j, i] = 1 + (j + i) / j / i * 1e-3, np.array([[0, 0, j, i]])
         save_cache(cache)
         return cache
-    with open(_path, "rb") as fp:
+    with _path.open("rb") as fp:
         return pickle.load(fp)
 
 
 def save_cache(cache):
-    with open(_path, "wb") as fp:
+    with _path.open("wb") as fp:
         pickle.dump(cache, fp)
 
 
