@@ -10,9 +10,12 @@
  - オペレーションズ・リサーチとは: https://orsj.org/?page_id=420
 """
 
+from importlib.metadata import metadata
+
 from .etc import *  # noqa: F401 F403 RUF100
 
 # from .optimization import * # networkx等が必要なのでデフォルトではimportしない
 
-# see pyproject.toml
-__author__ = "SaitoTsutomu <tsutomu7@hotmail.co.jp>"
+_package_metadata = metadata(__package__)
+__version__ = _package_metadata["Version"]
+__author__ = _package_metadata.get("Author-email", "")

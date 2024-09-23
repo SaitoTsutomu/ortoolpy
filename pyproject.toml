@@ -11,7 +11,7 @@ classifiers = [
 ]
 dependencies = [
   "more-itertools>=10.5.0",
-  "pandas>=2.2.2",
+  "pandas>=2.2.3",
   "pulp>=2.9.0",
 ]
 description = "`ortoolpy` is a package for Operations Research."
@@ -19,7 +19,7 @@ license = {text = "Apache-2.0"}
 name = "ortoolpy"
 readme = "README.md"
 requires-python = ">=3.12"
-version = "0.8.1"
+version = "0.8.2"
 
 [project.urls]
 homepage = "https://github.com/SaitoTsutomu/ortoolpy"
@@ -29,7 +29,7 @@ dev-dependencies = [
   "jupyterlab>=4.2.5",
   "matplotlib>=3.9.2",
   "networkx>=3.3",
-  "pytest>=8.3.2",
+  "pytest>=8.3.3",
   "pytest-snapshot>=0.9.0",
 ]
 
