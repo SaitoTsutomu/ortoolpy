@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterable
 from itertools import combinations, islice, pairwise, permutations, product
+from logging import getLogger
 from math import ceil, sqrt
 from random import seed, shuffle
 
@@ -27,6 +28,8 @@ from pulp import (
     lpSum,
     value,
 )
+
+logger = getLogger("ortoolpy")
 
 iterable = lambda a: isinstance(a, Iterable)  # noqa: E731 RUF100
 
@@ -522,7 +525,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
             routing_enums_pb2,
         )
     except ImportError:
-        print('Please "pip install ortools"')
+        logger.warning('Please "pip install ortools"')
         raise
     manager = pywrapcp.RoutingIndexManager(nn, nv, depo)
     routing = pywrapcp.RoutingModel(manager)
