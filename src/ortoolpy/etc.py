@@ -262,9 +262,12 @@ def dual_model(m, ignore_up_bound=False):
 
 def dual_model_nonzero(m, ignore_up_bound=False):
     """双対問題作成(ただし、全て非負変数)"""
-    assert all(v.lowBound == 0 for v in m.variables()), "Must be lowBound==0"
-    if not ignore_up_bound:
-        assert all(v.upBound is None for v in m.variables())
+    if not all(v.lowBound == 0 for v in m.variables()):
+        msg = "Must be lowBound == 0"
+        raise ValueError(msg)
+    if not ignore_up_bound and not all(v.upBound is None for v in m.variables()):
+        msg = "Must be upBound is None"
+        raise ValueError(msg)
     coe = 1 if m.sense == LpMinimize else -1
     nw_mdl = LpProblem(sense=LpMaximize if m.sense == LpMinimize else LpMinimize)
     ccs = [[], [], []]
@@ -518,7 +521,9 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     出力
         運搬車ごとのルート
     """
-    assert isinstance(dist[0, 1], int | np.int32 | np.int64), "Distance must be int."
+    if not isinstance(dist[0, 1], int | np.int32 | np.int64):
+        msg = "Distance must be int."
+        raise TypeError(msg)
     try:
         from ortools.constraint_solver import (  # noqa: PLC0415
             pywrapcp,
@@ -687,7 +692,8 @@ def chinese_postman(g, weight="weight"):
     """
     import networkx as nx  # noqa: PLC0415
 
-    assert not g.is_directed()
+    if g.is_directed():
+        raise ValueError
     g = nx.MultiGraph(g)
     subnd = [nd for nd, dg in g.degree() if dg % 2 == 1]  # 奇数次数ノード群
     dd = nx.floyd_warshall(g, weight=weight)  # 完全距離表
@@ -1266,7 +1272,8 @@ def sudoku(s, check_only_one=False):
     """
 
     data = re.sub(r"[^\d.]", "", s)
-    assert len(data) == 81
+    if len(data) != 81:
+        raise ValueError
     r = range(9)
     a = pd.DataFrame(
         [

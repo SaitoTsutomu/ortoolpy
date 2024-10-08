@@ -1,10 +1,10 @@
-import pickle
+import json
 from math import sqrt
 from pathlib import Path
 
 import numpy as np
 
-_path = Path(__file__).parent / "cover_by_rect.pkl"
+_path = Path(__file__).parent / "cover_by_rect.json"
 
 
 def get_cache(maxsize=100):
@@ -17,12 +17,12 @@ def get_cache(maxsize=100):
         save_cache(cache)
         return cache
     with _path.open("rb") as fp:
-        return pickle.load(fp)
+        return json.load(fp)
 
 
 def save_cache(cache):
     with _path.open("wb") as fp:
-        pickle.dump(cache, fp)
+        json.dump(cache, fp)
 
 
 class CoverByRect:

@@ -5,7 +5,7 @@ import pandas as pd
 from IPython.display import HTML
 from more_itertools import first, pairwise
 
-from .. import (
+from ortoolpy import (
     TwoDimPackingClass,
     binpacking,
     chinese_postman,
