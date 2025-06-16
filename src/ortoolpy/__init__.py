@@ -1,5 +1,4 @@
-"""
-# オペレーションズ・リサーチとは
+"""# オペレーションズ・リサーチとは
 
 - オペレーションズ・リサーチ(Operations Research: OR)とは数理的アプローチに基づく問題解決学です。
   - 数学を使って社会の課題を解決します。
@@ -16,6 +15,7 @@ from .etc import *  # noqa: F401 F403 RUF100
 
 # from .optimization import * # networkx等が必要なのでデフォルトではimportしない  # noqa: ERA001
 
-_package_metadata = metadata(__package__)
-__version__ = _package_metadata["Version"]
-__author__ = _package_metadata.get("Author-email", "")
+if __package__:
+    _package_metadata = metadata(__package__)
+    __version__ = _package_metadata["Version"]
+    __author__ = _package_metadata.get("Author-email", "")

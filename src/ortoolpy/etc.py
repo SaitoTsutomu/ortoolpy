@@ -192,14 +192,13 @@ def addlines(m, curve, x, y):
 
 
 def value_or_zero(x):
-    """value or 0"""
+    """Value or 0"""
     v = value(x) if x else None
     return v if v is not None else 0
 
 
 def random_model(nv, nc, sense=1, seed=1, rate_free=0, rate_coef=0.1, rate_eq=0, feasible=False):
-    """
-    ランダムなLP作成
+    """ランダムなLP作成
     nv,nc:変数数、制約条件数
     sense:種類(LpMinimize=1)
     seed:乱数シード
@@ -319,8 +318,7 @@ def graph_from_table(  # noqa: PLR0912
     no_graph=False,
     **kwargs,
 ):
-    """
-    表からグラフを作成
+    """表からグラフを作成
     Excelの場合:[Excelファイル名]シート名
     from_to: 'from-to'となる列を追加(ただしfrom < to)
     """
@@ -370,8 +368,7 @@ def networkx_draw(g, dcpos=None, node_label="id", x_label="x", y_label="y", **kw
 
 
 def maximum_stable_set(g, weight="weight"):
-    """
-    最大安定集合問題
+    """最大安定集合問題
     入力
         g: グラフ(node:weight)
         weight: 重みの属性文字
@@ -390,8 +387,7 @@ def maximum_stable_set(g, weight="weight"):
 
 
 def min_node_cover(g, weight="weight"):
-    """
-    最小頂点被覆問題
+    """最小頂点被覆問題
     入力
         g: グラフ
         weight: 重みの属性文字
@@ -402,8 +398,7 @@ def min_node_cover(g, weight="weight"):
 
 
 def maximum_cut(g, weight="weight"):
-    """
-    最大カット問題
+    """最大カット問題
     入力
         g: グラフ(node:weight)
         weight: 重みの属性文字
@@ -463,8 +458,7 @@ def get_callback_index2(manager, routing, dct):
 
 
 def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
-    """
-    運搬経路問題
+    """運搬経路問題
     入力
         g: グラフ(node:demand, edge:cost)
         nv: 運搬車数
@@ -508,8 +502,7 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
 
 
 def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
-    """
-    運搬経路問題
+    """運搬経路問題
     入力
         nn: 地点数
         dist: (i, j)をキー、距離を値とした辞書
@@ -550,8 +543,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
 
 
 def tsp(nodes, dist=None, method=None):
-    """
-    巡回セールスマン問題
+    """巡回セールスマン問題
     入力
         nodes: 点(dist未指定時は、座標)のリスト
         dist: (i, j)をキー、距離を値とした辞書
@@ -570,8 +562,7 @@ def tsp(nodes, dist=None, method=None):
 
 
 def tsp1(nodes, dist):
-    """
-    巡回セールスマン問題
+    """巡回セールスマン問題
     入力
         nodes: 点(dist未指定時は、座標)のリスト
         dist: (i,j)をキー、距離を値とした辞書
@@ -605,8 +596,7 @@ def tsp1(nodes, dist):
 
 
 def tsp2(pos):  # noqa: C901 PLR0912
-    """
-    巡回セールスマン問題
+    """巡回セールスマン問題
     入力
         pos: 座標のリスト
     出力
@@ -682,8 +672,7 @@ def tsp3(point):
 
 
 def chinese_postman(g, weight="weight"):
-    """
-    中国人郵便配達問題
+    """中国人郵便配達問題
     入力
         g: 無向グラフ
         weight: 重みの属性文字
@@ -710,8 +699,7 @@ def chinese_postman(g, weight="weight"):
 
 
 def set_covering(n, candidate, is_partition=False):
-    """
-    集合被覆問題
+    """集合被覆問題
     入力
         n: 要素数
         candidate: (重み, 部分集合)の候補リスト
@@ -740,8 +728,7 @@ def set_covering(n, candidate, is_partition=False):
 
 
 def set_partition(n, candidate):
-    """
-    集合分割問題
+    """集合分割問題
     入力
         n: 要素数
         candidate: (重み, 部分集合)の候補リスト
@@ -752,8 +739,7 @@ def set_partition(n, candidate):
 
 
 def combinatorial_auction(candidate, limit=-1):
-    """
-    組合せオークション
+    """組合せオークション
       要素を重複売却せず、購入者ごとの候補数上限を超えないように売却金額を最大化
     入力
         candidate: (金額, 部分集合, 購入者ID)の候補リスト。購入者IDはなくてもよい
@@ -787,8 +773,7 @@ def combinatorial_auction(candidate, limit=-1):
 
 
 def two_machine_flowshop(p):
-    """
-    2機械フローショップ問題
+    """2機械フローショップ問題
         2台のフローショップ型のジョブスケジュールを求める(ジョンソン法)
     入力
         p: (前工程処理時間, 後工程処理時間)の製品ごとのリスト
@@ -819,8 +804,7 @@ def two_machine_flowshop(p):
 
 
 def shift_scheduling(ndy, nst, shift, prohibit, need):
-    """
-    勤務スケジューリング問題
+    """勤務スケジューリング問題
     入力
         ndy: 日数
         nst: スタッフ数
@@ -852,8 +836,7 @@ def shift_scheduling(ndy, nst, shift, prohibit, need):
 
 
 def knapsack(size, weight, capacity):
-    """
-    ナップサック問題
+    """ナップサック問題
         価値の最大化
     入力
         size: 荷物の大きさのリスト
@@ -873,8 +856,7 @@ def knapsack(size, weight, capacity):
 
 
 def binpacking(c, w):  # noqa: C901 PLR0912
-    """
-    ビンパッキング問題
+    """ビンパッキング問題
         列生成法で解く(近似解法)
     入力
         c: ビンの大きさ
@@ -913,7 +895,7 @@ def binpacking(c, w):  # noqa: C901 PLR0912
     const = list(mdl.constraints.values())
     for i, q in enumerate(const):
         for v in q:
-            dct[v].addterm(nwm_va[i], 1)
+            dct[v].addInPlace(nwm_va[i], 1)
     for q in dct.values():
         nwm.addConstraint(q)
     nwm.solve(solver)
@@ -931,8 +913,7 @@ def binpacking(c, w):  # noqa: C901 PLR0912
 
 
 class TwoDimPackingClass:
-    """
-    2次元パッキング問題
+    """2次元パッキング問題
         ギロチンカットで元板からアイテムを切り出す(近似解法)
     入力
         width, height: 元板の大きさ
@@ -977,7 +958,7 @@ class TwoDimPackingClass:
                     if res and res[0] < mnr[0]:
                         mni, mnr = i, res
                 if mni >= 0:
-                    tmp.append((k, w, h) + plates[mni][2:])
+                    tmp.append((k, w, h, *plates[mni][2:]))
                     mni_1 = mni + 1
                     plates[mni:mni_1] = [p for p in mnr[1:3] if p[0] * p[1] > 0]
             sm = sum(r[1] * r[2] for r in tmp)
@@ -988,7 +969,7 @@ class TwoDimPackingClass:
 
 
 def binpacking_fixnum(sizes: list[int], n_bins: int, as_index: bool = False) -> tuple[int, list[list[int]]]:
-    """bin packing(fix number of bins)
+    """Bin packing(fix number of bins)
 
     :param sizes: size of items
     :param n_bins: number of bins
@@ -1006,7 +987,7 @@ def binpacking_fixnum(sizes: list[int], n_bins: int, as_index: bool = False) -> 
 
 
 def binpacking_fixsize(sizes: list[int], limit: int, as_index: bool = False) -> tuple[int, list[list[int]]]:
-    """bin packing(fix number of size)
+    """Bin packing(fix number of size)
 
     :param sizes: size of items
     :param limit: limit of bin
@@ -1047,8 +1028,7 @@ def ordered_binpacking_sub(w, c, return_index=False):
 
 
 def ordered_binpacking(n, w, tol=1):
-    """
-    順番を維持したビンパッキング平準化問題
+    """順番を維持したビンパッキング平準化問題
     入力
         n: ビン数
         w: 荷物の大きさのリスト
@@ -1073,8 +1053,7 @@ def ordered_binpacking(n, w, tol=1):
 
 
 def facility_location(p, point, candidate, func=None):
-    """
-    施設配置問題
+    """施設配置問題
         p-メディアン問題:総距離x量の和の最小化
     入力
         p: 施設数上限
@@ -1103,8 +1082,7 @@ def facility_location(p, point, candidate, func=None):
 
 
 def facility_location_without_capacity(p, point, candidate=None, func=None):
-    """
-    容量制約なし施設配置問題
+    """容量制約なし施設配置問題
         p-メディアン問題:総距離の和の最小化
     入力
         p: 施設数上限
@@ -1135,8 +1113,7 @@ def facility_location_without_capacity(p, point, candidate=None, func=None):
 
 
 def quad_assign(quant, dist):
-    """
-    2次割当問題
+    """2次割当問題
         全探索
     入力
         quant: 対象間の輸送量
@@ -1155,8 +1132,7 @@ def quad_assign(quant, dist):
 
 
 def gap(cst, req, cap):
-    """
-    一般化割当問題
+    """一般化割当問題
         費用最小の割当を解く
     入力
         cst: エージェントごと、ジョブごとの費用のテーブル
@@ -1180,8 +1156,7 @@ def gap(cst, req, cap):
 
 
 def stable_matching(prefm, preff):
-    """
-    安定マッチング問題
+    """安定マッチング問題
     入力
         prefm: 選好(男性の順位別の女性)
         preff: 選好(女性の順位別の男性)
@@ -1217,8 +1192,7 @@ def logistics_network(
     lwb="下限",
     upb="上限",
 ):
-    """
-    ロジスティクスネットワーク問題を解く
+    """ロジスティクスネットワーク問題を解く
     tbde: 需要地 製品 需要
     tbdi: 需要地 工場 輸送費
     tbfa: 工場 製品 生産費 (下限) (上限)
@@ -1256,8 +1230,7 @@ def logistics_network(
 
 
 def sudoku(s, check_only_one=False):
-    """
-    sudoku(
+    """sudoku(
     '4 . . |. . . |1 . . '
     '. 5 . |. 3 . |. . 8 '
     '2 . . |7 . 8 |. 9 . '
@@ -1270,7 +1243,6 @@ def sudoku(s, check_only_one=False):
     '. . 4 |. . . |. . . '
     '. 1 . |. 6 4 |3 . 9 ')[0]
     """
-
     data = re.sub(r"[^\d.]", "", s)
     if len(data) != 81:
         raise ValueError
@@ -1304,8 +1276,7 @@ def sudoku(s, check_only_one=False):
 
 
 def groupbys(df1, df2, by=None, left_by=None, right_by=None, allow_right_empty=False):
-    """
-    df1: Left pandas.DataFrame
+    """df1: Left pandas.DataFrame
     df2: Right pandas.DataFrame
     by: "by" of groupby. Use intersection of each columns, if it is None.
     left_by: This or "by" is used as "by" of df1.groupby.
