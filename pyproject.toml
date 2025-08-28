@@ -63,6 +63,9 @@ select = ["ALL"]
 [tool.ruff.lint.mccabe]
 max-complexity = 11
 
+[tool.taskipy.tasks]
+license = "uv run --with pip-licenses pip-licenses"
+
 [build-system]
 build-backend = "hatchling.build"
 requires = ["hatchling"]
