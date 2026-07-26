@@ -34,7 +34,7 @@ logger = getLogger("ortoolpy")
 iterable = lambda a: isinstance(a, Iterable)  # noqa: E731 RUF100
 
 
-def L(s, i=[-1]):  # noqa: B006
+def L(s, i=[-1]):  # ruff:ignore[mutable-argument-default]
     i[0] += 1
     return f"{s}_{i[0]}"
 
@@ -77,7 +77,7 @@ class LpProblemEx(LpProblem):
         else:
             for df in dfs:
                 if "Val" in df:
-                    df.drop("Val", 1, inplace=True)  # noqa: PD002
+                    df.drop("Val", 1, inplace=True)  # ruff:ignore[pandas-use-of-inplace-argument]
         return self.status
 
 
@@ -97,14 +97,14 @@ def model_max(*n, df=None, dfb=None, dfi=None, **ad):
     return model(*n, **ad, ismin=False, df=df, dfb=dfb, dfi=dfi)
 
 
-def addvals(*n, Var="Var", Val="Val"):  # noqa: N803
+def addvals(*n, Var="Var", Val="Val"):  # ruff:ignore[invalid-argument-name]
     """結果の列を作成"""
     for df in n:
         df[Val] = df[Var].apply(value)
     return n
 
 
-def addvar(name=None, *, var_count=[0], lowBound=0, format_="v%.6d", **kwargs):  # noqa: B006, N803
+def addvar(name=None, *, var_count=[0], lowBound=0, format_="v%.6d", **kwargs):  # ruff:ignore[mutable-argument-default, invalid-argument-name]
     """変数作成用ユーティリティ"""
     if not name:
         var_count[0] += 1
@@ -306,7 +306,7 @@ def satisfy(m, eps=1e-6):
     return True
 
 
-def graph_from_table(  # noqa: PLR0912
+def graph_from_table(  # ruff:ignore[too-many-branches]
     dfnd,
     dfed,
     directed=False,
@@ -322,7 +322,7 @@ def graph_from_table(  # noqa: PLR0912
     Excelの場合:[Excelファイル名]シート名
     from_to: 'from-to'となる列を追加(ただしfrom < to)
     """
-    import networkx as nx  # noqa: PLC0415
+    import networkx as nx  # ruff:ignore[import-outside-top-level]
 
     if isinstance(dfnd, str):
         m = re.match(r"\[([^]]+)](\w+)", dfnd)
@@ -357,7 +357,7 @@ def graph_from_table(  # noqa: PLR0912
 
 def networkx_draw(g, dcpos=None, node_label="id", x_label="x", y_label="y", **kwargs):
     """グラフを描画"""
-    import networkx as nx  # noqa: PLC0415
+    import networkx as nx  # ruff:ignore[import-outside-top-level]
 
     if not dcpos:
         dcpos = {r[node_label]: (r[x_label], r[y_label]) for i, r in g.nodes.items()}
@@ -470,7 +470,7 @@ def vrp(g, nv, capa, demand="demand", cost="cost", method=None):
         運搬車ごとの頂点対のリスト
     """
     if method == "ortools":
-        import networkx as nx  # noqa: PLC0415
+        import networkx as nx  # ruff:ignore[import-outside-top-level]
 
         dd = nx.to_numpy_matrix(g, weight=cost, nonedge=999999).astype(int)
         dem = nx.get_node_attributes(g, demand)
@@ -518,7 +518,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
         msg = "Distance must be int."
         raise TypeError(msg)
     try:
-        from ortools.constraint_solver import (  # noqa: PLC0415
+        from ortools.constraint_solver import (  # ruff:ignore[import-outside-top-level]
             pywrapcp,
             routing_enums_pb2,
         )
@@ -529,7 +529,7 @@ def ortools_vrp(nn, dist, nv=1, capa=1000, demands=None, depo=0, limit_time=0):
     routing = pywrapcp.RoutingModel(manager)
     routing.SetArcCostEvaluatorOfAllVehicles(get_callback_index2(manager, routing, dist))
     if demands is not None:
-        routing.AddDimension(get_callback_index1(manager, routing, demands), 0, capa, True, "Capacity")  # noqa: FBT003
+        routing.AddDimension(get_callback_index1(manager, routing, demands), 0, capa, True, "Capacity")  # ruff:ignore[boolean-positional-value-in-call]
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
     if limit_time:
@@ -552,7 +552,7 @@ def tsp(nodes, dist=None, method=None):
         距離と点番号リスト
     """
     if dist is None:
-        from scipy.spatial import distance  # noqa: PLC0415
+        from scipy.spatial import distance  # ruff:ignore[import-outside-top-level]
 
         dist = distance.cdist(nodes, nodes)
     if method == "ortools":  # Approximate solution
@@ -595,7 +595,7 @@ def tsp1(nodes, dist):
     return value(m.objective), list(take(n, iterate(lambda k: dc[k], 0)))
 
 
-def tsp2(pos):  # noqa: C901 PLR0912
+def tsp2(pos):  # ruff:ignore[complex-structure, too-many-branches]
     """巡回セールスマン問題
     入力
         pos: 座標のリスト
@@ -679,7 +679,7 @@ def chinese_postman(g, weight="weight"):
     出力
         距離と頂点リスト
     """
-    import networkx as nx  # noqa: PLC0415
+    import networkx as nx  # ruff:ignore[import-outside-top-level]
 
     if g.is_directed():
         raise ValueError
@@ -855,7 +855,7 @@ def knapsack(size, weight, capacity):
     return value(m.objective), [i for i in range(len(size)) if value(v[i]) > 0.5]
 
 
-def binpacking(c, w):  # noqa: C901 PLR0912
+def binpacking(c, w):  # ruff:ignore[complex-structure, too-many-branches]
     """ビンパッキング問題
         列生成法で解く(近似解法)
     入力
@@ -1260,7 +1260,7 @@ def sudoku(s, check_only_one=False):
     for cl in [["行", "列"], ["行", "数"], ["列", "数"], ["_3x3", "数"]]:
         for _, v in a.groupby(cl):
             m += lpSum(v.Var) == 1
-    for _, r in a[a.固 == True].iterrows():  # noqa: E712
+    for _, r in a[a.固 == True].iterrows():  # ruff:ignore[true-false-comparison]
         m += r.Var == 1
     solver = PULP_CBC_CMD(msg=False)
     m.solve(solver)
@@ -1269,7 +1269,7 @@ def sudoku(s, check_only_one=False):
     a["Val"] = a.Var.apply(value)
     res = a[a.Val > 0.5].数.values.reshape(9, 9).tolist()
     if check_only_one:
-        fr = a[(a.Val > 0.5) & (a.固 != True)].Var  # noqa: E712
+        fr = a[(a.Val > 0.5) & (a.固 != True)].Var  # ruff:ignore[true-false-comparison]
         m += lpSum(fr) <= len(fr) - 1
         return res, m.solve(solver) != 1
     return res, None
@@ -1293,7 +1293,7 @@ def groupbys(df1, df2, by=None, left_by=None, right_by=None, allow_right_empty=F
             yield k, v1, v2
 
 
-class unionfind:  # noqa: N801
+class unionfind:  # ruff:ignore[invalid-class-name]
     """指定された二つの要素key1, key2が同じグループに含まれるかどうかを調べる"""
 
     def __init__(self):

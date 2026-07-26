@@ -13,7 +13,7 @@ from importlib.metadata import metadata
 
 from .etc import *  # noqa: F401 F403 RUF100
 
-# from .optimization import * # networkx等が必要なのでデフォルトではimportしない  # noqa: ERA001
+# from .optimization import * # networkx等が必要なのでデフォルトではimportしない  # ruff:ignore[commented-out-code]
 
 _package_metadata = metadata(__package__)
 __version__ = _package_metadata["Version"]
