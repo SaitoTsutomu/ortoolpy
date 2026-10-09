@@ -12,7 +12,7 @@ classifiers = [
 dependencies = [
   "more-itertools>=10.7.0",
   "pandas>=2.3.0",
-  "pulp>=3.2.1",
+  "pulp>=3.2.1,<4",
 ]
 description = "`ortoolpy` is a package for Operations Research."
 license = {text = "Apache-2.0"}
